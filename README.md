@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## ORIGIN
 
-## Getting Started
+Experiencia narrativa situada en una casa de abuela en Buenos Aires. El recorrido mezcla aventura grafica, memoria familiar y una busqueda: descubrir quien quedo siempre detras de la camara.
 
-First, run the development server:
+El estado separa hechos observables, lecturas provisorias y estado dramatico. No hay puntos ni finales calculados por suma. Usa `?debug` para ver hotspots y estado interno.
+
+## Voz
+
+La narracion intenta usar Azure Speech desde `/api/tts` con `es-AR-TomasNeural`, una voz masculina argentina. Si no hay credenciales configuradas, el fallback local solo acepta voces sudamericanas del navegador; no usa voces de Espana ni Mexico.
+
+Variables necesarias:
+
+```bash
+AZURE_SPEECH_KEY=
+AZURE_SPEECH_REGION=eastus
+AZURE_SPEECH_VOICE=es-AR-TomasNeural
+```
+
+## Desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Para Vercel, cargar las variables de Azure como Server Environment Variables. La clave queda protegida porque el navegador solo llama a `/api/tts`.
 
-## Learn More
+Para llevarlo al stack tipo Sendero con Supabase, la siguiente capa natural es guardar telemetria narrativa anonima:
 
-To learn more about Next.js, take a look at the following resources:
+- `origin_sessions`: id, created_at, ending, dominant_reading.
+- `origin_events`: session_id, scene, object_id, gesture, dramatic_state, created_at.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Variables reservadas en `env.example`:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
 
-## Deploy on Vercel
+## Build
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+```
