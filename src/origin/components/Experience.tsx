@@ -1,116 +1,45 @@
 'use client';
-/* eslint-disable react-hooks/set-state-in-effect, react-hooks/refs */
-import { CSSProperties, PointerEvent, useCallback, useEffect, useRef, useState } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/refs, @next/next/no-img-element */
+import { CSSProperties, useCallback, useEffect, useRef, useState } from 'react';
 import { AudioEngine } from '../audio/audioEngine';
+import { closingText, coreSequence, isCompleteEnoughForLetter, nextPhysicalPrompt, sceneEntryLine } from '../engine/drama';
+import { createInputHandlers, Gesture, InputSnapshot } from '../engine/input';
 import { SessionEngine } from '../engine/memory';
+import { Region, scenes, styleForRegion } from '../engine/scenes';
 import { DramaticState, Scene } from '../engine/types';
-import styles from '../styles/experience.module.css';
 import effects from '../styles/effects.module.css';
+import styles from '../styles/experience.module.css';
+import tv from '../styles/tv.module.css';
 
-type Hotspot = {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  holdable?: boolean;
-  draggable?: boolean;
-};
-
-type Clue = {
-  id: string;
-  label: string;
-  hint: string;
-  reward: string;
-};
-
-const spots: Record<Scene, Hotspot[]> = {
-  hallway: [
-    { id: 'lamp', label: 'aplique del pasillo', x: 68, y: 18, w: 13, h: 16 },
-    { id: 'photo', label: 'foto de Elvira: mantener', x: 4, y: 52, w: 21, h: 20, holdable: true },
-    { id: 'door-living', label: 'puerta al living', x: 10, y: 14, w: 24, h: 52 },
-    { id: 'door-kitchen', label: 'puerta a la cocina', x: 60, y: 33, w: 14, h: 42 },
-    { id: 'door-bedroom', label: 'puerta al cuarto', x: 87, y: 8, w: 13, h: 84 },
-    { id: 'exit', label: 'puerta de calle', x: 50, y: 37, w: 16, h: 31 },
-  ],
-  living: [
-    { id: 'television', label: 'televisor: final del 86', x: 55, y: 34, w: 21, h: 27 },
-    { id: 'chair', label: 'sillon de Elvira', x: 4, y: 43, w: 40, h: 39 },
-    { id: 'radio', label: 'radio Spica: arrastrar', x: 78, y: 39, w: 19, h: 17, draggable: true },
-    { id: 'living-window', label: 'ventana a Almagro', x: 10, y: 8, w: 40, h: 32 },
-  ],
-  kitchen: [
-    { id: 'tap', label: 'canilla: mantener', x: 38, y: 40, w: 12, h: 10, holdable: true },
-    { id: 'mate', label: 'mate de Elvira: mantener', x: 19, y: 62, w: 13, h: 16, holdable: true },
-    { id: 'fridge', label: 'heladera Siam', x: 78, y: 28, w: 19, h: 58 },
-    { id: 'kettle', label: 'pava y hornalla', x: 52, y: 42, w: 16, h: 15 },
-    { id: 'family-photos', label: 'fotos familiares', x: 3, y: 7, w: 19, h: 22 },
-  ],
-  bedroom: [
-    { id: 'letter', label: 'sobre de Malena: mantener', x: 57, y: 72, w: 11, h: 7, holdable: true },
-    { id: 'bedroom-window', label: 'ventana al patio', x: 90, y: 16, w: 10, h: 43 },
-    { id: 'mirror', label: 'espejo del ropero: mantener', x: 58, y: 20, w: 17, h: 40, holdable: true },
-    { id: 'box', label: 'caja de casetes', x: 54, y: 62, w: 27, h: 19 },
-    { id: 'bed', label: 'cama de los primos', x: 3, y: 34, w: 44, h: 50 },
-  ],
-};
-
-const clues: Clue[] = [
-  { id: 'photo-back', label: 'reverso', hint: 'Mantené la foto del pasillo: ahi empieza el faltante.', reward: 'Caso abierto: no falta una cara, falta quien miraba.' },
-  { id: 'radio-tuned', label: 'voz', hint: 'Arrastrá la Spica hasta que vuelva una frecuencia familiar.', reward: 'La casa ya tiene voz: ahora puede discutir con la tele.' },
-  { id: 'tv-86', label: 'partido', hint: 'Con la radio sintonizada, tocá la TV y dejá entrar la final.', reward: 'Gol de memoria: el 86 volvió, pero Beto sigue fuera de cuadro.' },
-  { id: 'elvira-place', label: 'sillón', hint: 'Después del partido, revisá el sillón: Elvira señala el próximo ritual.', reward: 'Testigo encontrado: Elvira ya no mira la tele, te mira a vos.' },
-  { id: 'family-photos', label: 'fotos', hint: 'En la cocina, revisá las fotos: todas miran al mismo ausente.', reward: 'Patrón encontrado: Beto hacía existir a los demás.' },
-  { id: 'tap-silence', label: 'silencio', hint: 'Mantené la canilla: cuando calle, la casa habla.', reward: 'Silencio ganado: Elvira dejó una regla de familia.' },
-  { id: 'mate-warm', label: 'mate', hint: 'Mantené el mate: la bombilla señala una deuda.', reward: 'Ritual recuperado: nadie se va de la ronda sin ser nombrado.' },
-  { id: 'table-set', label: 'mesa', hint: 'Combiná canilla, mate y pava: la cocina necesita quedar en calma.', reward: 'Mesa puesta: ahora la casa acepta que alguien vuelva a aparecer.' },
-  { id: 'cassette', label: 'casete', hint: 'La caja se abre cuando partido, fotos y mesa quedan alineados.', reward: 'Prueba física: FINAL 86 - CASA DE MAMA.' },
-  { id: 'letter-open', label: 'carta', hint: 'Mantené la carta de Malena y elegí qué hacer con Beto.', reward: 'Decisión abierta: contar la historia o entrar en la foto.' },
-];
-
-const coreClues = ['photo-back', 'radio-tuned', 'tv-86', 'elvira-place', 'family-photos', 'table-set', 'cassette', 'letter-open'];
-
-const cast = [
-  { id: 'elvira', name: 'Elvira', when: ['elvira-place'], role: 'la abuela que ordena la mesa' },
-  { id: 'beto', name: 'Beto', when: ['photo-back', 'tv-86'], role: 'el que filmaba para no aparecer' },
-  { id: 'malena', name: 'Malena', when: ['cassette'], role: 'la nieta que guardó la cinta' },
-  { id: 'tito', name: 'Tito', when: ['tv-86', 'family-photos'], role: 'el grito del gol contra la pared' },
-];
-
-const position = (spot: Hotspot): CSSProperties => ({
-  left: `${spot.x}%`,
-  top: `${spot.y}%`,
-  width: `${spot.w}%`,
-  height: `${spot.h}%`,
-});
+type ActivePress = Parameters<typeof createInputHandlers>[0];
 
 export default function Experience() {
   const engine = useRef<SessionEngine | null>(null);
   const audio = useRef<AudioEngine | null>(null);
-  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const holdTriggered = useRef(false);
-  const dragStartX = useRef(0);
-  const dragTriggered = useRef(false);
-  const pointerHandled = useRef(false);
-
+  const artRef = useRef<HTMLDivElement | null>(null);
+  const pointerResolvedAt = useRef(0);
   const [started, setStarted] = useState(false);
   const [scene, setScene] = useState<Scene>('hallway');
   const [phase, setPhase] = useState<DramaticState>('threshold');
   const [message, setMessage] = useState('');
-  const [held, setHeld] = useState<string | null>(null);
-  const [ending, setEnding] = useState<'leave' | 'stay' | null>(null);
+  const [ending, setEnding] = useState<'leave' | 'mirror' | null>(null);
   const [debug, setDebug] = useState(false);
-  const [searchAwake, setSearchAwake] = useState(false);
-  const [reward, setReward] = useState('');
-  const [, rerender] = useState(0);
+  const [active, setActive] = useState<ActivePress>(null);
+  const [input, setInput] = useState<InputSnapshot>({ activeId: null, holdProgress: 0, pointer: null });
+  const [renderedRect, setRenderedRect] = useState<{ w: number; h: number } | null>(null);
+  const [, refresh] = useState(0);
 
   useEffect(() => {
     engine.current = new SessionEngine();
     audio.current = new AudioEngine();
-    setDebug(new URLSearchParams(window.location.search).has('debug'));
+    setDebug(new URLSearchParams(window.location.search).get('debug') === '1');
+    engine.current.visit('hallway');
     const onVisibility = () => {
-      if (document.hidden) engine.current?.hide();
+      if (document.hidden) {
+        setActive(null);
+        setInput(current => ({ ...current, activeId: null, holdProgress: 0 }));
+        engine.current?.hide();
+      }
     };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
@@ -119,320 +48,229 @@ export default function Experience() {
     };
   }, []);
 
-  const visits = engine.current?.get().behavior.objectVisits || {};
+  useEffect(() => {
+    if (!artRef.current) return;
+    const measure = () => {
+      const rect = artRef.current?.getBoundingClientRect();
+      if (rect) setRenderedRect({ w: Math.round(rect.width), h: Math.round(rect.height) });
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(artRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [started, scene]);
+
+  const current = scenes[scene];
+  const behavior = engine.current?.get().behavior;
+  const visits = behavior?.objectVisits || {};
   const flags = Object.keys(visits).join(' ');
-  const unlockedClues = clues.filter(clue => Boolean(visits[clue.id]));
-  const nextClue = clues.find(clue => !visits[clue.id]);
-  const progress = Math.round((unlockedClues.length / clues.length) * 100);
-  const coreProgress = coreClues.filter(id => Boolean(visits[id])).length;
-
   const has = useCallback((id: string) => Boolean(engine.current?.has(id)), []);
+  const complete = coreSequence.every(id => Boolean(visits[id]));
+  const reading = engine.current?.dominant() || 'exploring';
 
-  const say = useCallback((text: string) => {
+  const sceneRect = useCallback(() => artRef.current?.getBoundingClientRect() || null, []);
+  const updatePointer = useCallback((clientX: number, clientY: number) => {
+    const rect = sceneRect();
+    if (!rect) return;
+    setInput(previous => ({
+      ...previous,
+      pointer: {
+        x: Math.max(0, Math.min(1000, ((clientX - rect.left) / rect.width) * 1000)),
+        y: Math.max(0, Math.min(1000, ((clientY - rect.top) / rect.height) * 1000)),
+      },
+    }));
+  }, [sceneRect]);
+
+  const say = useCallback((text: string, voice = true) => {
     setMessage(text);
-    audio.current?.speak(text);
-    window.setTimeout(() => setMessage(current => current === text ? '' : current), 7000);
+    if (voice) audio.current?.speak(text);
+    window.setTimeout(() => setMessage(currentText => currentText === text ? '' : currentText), 6200);
   }, []);
 
-  const mark = useCallback((id: string, gesture: 'click' | 'hold' = 'click') => {
+  const mark = useCallback((id: string, gesture: Gesture) => {
     engine.current?.act(id, gesture, scene);
     audio.current?.setRoomToneIntensity(Math.min(7, Object.keys(engine.current?.get().behavior.objectVisits || {}).length));
-    rerender(value => value + 1);
+    refresh(value => value + 1);
   }, [scene]);
 
-  const unlock = useCallback((id: string, text: string) => {
+  const unlock = useCallback((id: string, text: string, gesture: Gesture = 'tap') => {
     const wasNew = !engine.current?.has(id);
-    if (!engine.current?.has(id)) {
-      mark(id, 'hold');
+    if (wasNew) {
+      mark(id, gesture);
       audio.current?.playMemoryUnlock();
     }
-    const clue = clues.find(item => item.id === id);
-    if (wasNew && clue) {
-      const rewardText = `MEMORIA ${unlockedClues.length + 1}/${clues.length}: ${clue.reward}`;
-      setReward(rewardText);
-      window.setTimeout(() => setReward(current => current === rewardText ? '' : current), 3600);
-    }
-    setSearchAwake(true);
     say(text);
-  }, [mark, say, unlockedClues.length]);
+  }, [mark, say]);
 
-  const move = useCallback((next: Scene, text: string) => {
-    engine.current?.visit(next);
+  const move = useCallback((next: Scene) => {
     setScene(next);
-    rerender(value => value + 1);
+    engine.current?.visit(next);
     audio.current?.playCreak();
     audio.current?.playSceneAmbient(next);
-    say(text);
-  }, [say]);
+    const visitsToNext = engine.current?.get().behavior.sceneVisits[next] || 0;
+    say(sceneEntryLine(next, has, visitsToNext), false);
+    refresh(value => value + 1);
+  }, [has, say]);
 
-  const finish = useCallback((kind: 'leave' | 'stay') => {
+  const finish = useCallback((kind: 'leave' | 'mirror') => {
     engine.current?.setDramaticState('consequence');
     setPhase('consequence');
     setEnding(kind);
     if (kind === 'leave') audio.current?.playDoorSlam();
-    else audio.current?.playHeartbeat(5000);
+    else audio.current?.playHeartbeat(4200);
   }, []);
 
-  const readyForLetter = ['radio-tuned', 'tv-86', 'elvira-place', 'family-photos', 'table-set', 'cassette']
-    .every(id => Boolean(visits[id]));
-  const letterOpen = Boolean(visits['letter-open']);
-  const tableReady = Boolean(visits['tap-silence'] && visits['mate-warm'] && visits['kettle-low']);
-  const currentBeat = letterOpen ? {
-    act: 'Acto V',
-    title: 'La foto imposible',
-    objective: 'Elegí: salir con la caja o entrar al espejo.',
-  } : readyForLetter ? {
-    act: 'Acto IV',
-    title: 'La carta de Malena',
-    objective: 'Volvé al cuarto y mantené el sobre: ya tenés las pruebas.',
-  } : !visits['photo-back'] ? {
-    act: 'Acto I',
-    title: 'El ausente',
-    objective: 'Mantené la foto del pasillo hasta que revele el reverso.',
-  } : !visits['radio-tuned'] || !visits['tv-86'] ? {
-    act: 'Acto II',
-    title: 'La tarde del 86',
-    objective: visits['radio-tuned'] ? 'Tocá la TV: la transmisión ya tiene voz.' : 'En el living, arrastrá la radio Spica para sintonizar la final.',
-  } : !visits['elvira-place'] ? {
-    act: 'Acto II',
-    title: 'La testigo',
-    objective: 'Tocá el sillón de Elvira: alguien tiene que decirte hacia dónde mirar.',
-  } : !visits['family-photos'] ? {
-    act: 'Acto III',
-    title: 'La mesa de Elvira',
-    objective: 'En la cocina, revisá las fotos familiares: falta siempre el mismo.',
-  } : !visits['table-set'] ? {
-    act: 'Acto III',
-    title: 'Poner la mesa',
-    objective: tableReady ? 'Tocá el mate: la cocina ya quedó en calma.' : 'Ordená la cocina: canilla en silencio, mate tibio y fuego bajo.',
-  } : !visits['cassette'] ? {
-    act: 'Acto III',
-    title: 'La prueba',
-    objective: 'En el cuarto, abrí la caja de casetes: la casa ya autorizó la prueba.',
-  } : {
-    act: 'Acto IV',
-    title: 'Lo que se hereda',
-    objective: nextClue?.hint || 'Seguí los objetos tibios de la casa.',
-  };
-  const currentHint = phase === 'decision' ? 'Final: puerta o espejo.' : currentBeat.objective;
-
-  const resolve = useCallback((id: string, gesture: 'click' | 'hold' | 'drag' = 'click') => {
+  const resolve = useCallback((region: Region, gesture: Gesture) => {
+    pointerResolvedAt.current = Date.now();
     const session = engine.current;
     if (!session) return;
     audio.current?.unlock();
 
-    if (id === 'door-living') return move('living', 'Entras al living de Elvira. La casa baja la voz: aca se grito el mundial y despues nadie supo donde poner la camara.');
-    if (id === 'door-kitchen') return move('kitchen', 'Entras a la cocina. La hornalla esta viva, la canilla marca el pulso y el mate todavia parece de alguien.');
-    if (id === 'door-bedroom') return move('bedroom', 'Entras al cuarto de los primos. Malena dejo el lugar como una mesa de investigacion: casetes, fotos, una carta.');
-    if (id === 'exit') {
-      if (phase === 'decision') finish('leave');
-      else {
-        audio.current?.playLocked();
-        say(readyForLetter ? 'Podes salir cuando entiendas para que. Falta abrir la carta de Malena: ahi te dice que llevarte de esta casa.' : `La calle esta ahi, pero salir sin historia es solo mudarse de pantalla. Pista pendiente: ${currentHint || 'busca en el cuarto'}`);
+    if (region.kind === 'exit') {
+      if (region.id === 'exit') {
+        if (phase === 'decision') finish('leave');
+        else {
+          audio.current?.playLocked();
+          say(nextPhysicalPrompt(has), false);
+        }
+        return;
       }
+      if (region.to) move(region.to);
       return;
     }
 
-    if (id === 'photo') {
+    if (region.id === 'photo') {
       if (gesture === 'hold') {
         setPhase('recognition');
         session.setDramaticState('recognition');
         audio.current?.playPaperRustle();
-        return unlock('photo-back', 'Das vuelta la foto. Atras dice: Elvira, Tito, Malena, Diego en la tele. Donde deberia decir Beto, el papel esta raspado.');
+        unlock('photo-back', 'Elvira escribió: “Final del 86. Beto, por una vez salí en la foto”. Donde debería estar él, el papel está raspado.', 'hold');
+      } else if (!has('photo-back')) {
+        say('El marco cede un poco. No alcanza con tocarlo: hay que sostenerlo.', false);
+      } else {
+        say('Detrás del marco quedó pegado un pelo blanco y una esquina de negativo.', false);
       }
-      if (!session.has('photo-back')) return unlock('photo-back', 'El marco se abre con un crack chiquito. Atras hay una lista de nombres y uno raspado: Beto.');
-      say('Ahora sabes que no falta una cara: falta quien estaba detras del lente.');
       return;
     }
 
-    if (id === 'lamp') {
+    if (region.id === 'lamp') {
       audio.current?.playKnock();
-      if (session.has('photo-back')) unlock('wall-mark', 'La luz revela un rectangulo mas claro en la pared. Alguien saco una foto de aca para que nadie preguntara por Beto.');
-      else say('El aplique parpadea sobre la foto, como si quisiera que la des vuelta.');
+      if (has('photo-back')) unlock('wall-mark', 'La luz encuentra un rectángulo más claro. Ahí colgó la única foto que Beto no sacó.', 'tap');
+      else say('El aplique tiembla sobre el vidrio de la foto.', false);
       return;
     }
 
-    if (id === 'radio') {
+    if (region.id === 'radio') {
       if (gesture === 'drag') {
-        setPhase('confrontation');
-        audio.current?.playTVStatic(0.45, 1800);
-        return unlock('radio-tuned', 'La Spica engancha una transmision: Victor Hugo se mezcla con una voz de familia. Beto, deja de filmar el televisor y veni a la foto, que Elvira ya esta posando.');
+        setPhase('attention');
+        audio.current?.playTVStatic(0.38, 1500);
+        unlock('radio-tuned', 'La perilla raspa. Elvira se ríe: “Beto, dejá de filmar y vení a abrazarnos”. Malena grita un gol que todavía no ocurrió.', 'drag');
+      } else {
+        say('La radio no quiere un golpe. Quiere que la busquen despacio.', false);
       }
-      audio.current?.playStaticZap();
-      say('La perilla no se clickea: se arrastra. Tiene una frecuencia escondida, como las radios de antes.');
       return;
     }
 
-    if (id === 'television') {
-      audio.current?.playTVStatic(session.has('radio-tuned') ? 0.7 : 0.3, 1800);
-      if (!session.has('radio-tuned')) {
-        say('La tele intenta mostrar Mexico 86, pero la senal se rompe. Primero sintoniza la radio.');
+    if (region.id === 'television') {
+      audio.current?.playTVStatic(has('radio-tuned') ? 0.7 : 0.25, 1600);
+      if (!has('radio-tuned')) {
+        say('La imagen sube y cae. Falta la radio.', false);
         return;
       }
-      session.setDramaticState('confrontation');
       setPhase('confrontation');
-      return unlock('tv-86', 'La pantalla entra en foco: Argentina campeon. El living vibra, Elvira llora, Tito golpea la mesa, un vecino grita desde el pulmon del edificio, y Beto sigue filmando.');
-    }
-
-    if (id === 'chair') {
-      if (session.has('tv-86')) unlock('elvira-place', 'En el sillon aparece por un segundo Elvira: no fantasma, recuerdo. Senala la cocina y tira un “nene, el mate no se abandona” con autoridad de cadena nacional. La busqueda deja de ser sobre una foto: ahora es sobre volver a poner la mesa.');
-      else say('El sillon tiene la forma de Elvira: espalda chica, manta pesada, ojos clavados en la tele y paciencia cero para los distraidos.');
+      session.setDramaticState('confrontation');
+      audio.current?.playWorldCupMemory();
+      unlock('tv-86', 'México, 1986. Burruchaga corre. Elvira vuelca el mate. Malena salta sobre el sillón. Beto no aparece: detrás de la cámara dice “ahora sí, ahora estamos todos”.', 'tap');
       return;
     }
 
-    if (id === 'living-window') {
-      say(session.has('tv-86') ? 'Afuera Buenos Aires toca bocina. Adentro, nadie nota que el que guarda el recuerdo se queda afuera.' : 'La lluvia sobre la persiana suena como cinta rebobinando.');
+    if (region.id === 'chair') {
+      if (has('tv-86')) unlock('elvira-place', 'En el tapizado quedó el círculo del mate de Elvira. La silla apunta a la cocina porque fue a buscar otra bandera.', 'tap');
+      else say('El sillón mira la tele como si todavía faltaran seis minutos para ser campeones.', false);
       return;
     }
 
-    if (id === 'tap') {
+    if (region.id === 'living-window') {
+      say(has('tv-86') ? 'Afuera alguien toca bocina. Adentro nadie se levanta.' : 'La lluvia baja solamente por el vidrio.', false);
+      return;
+    }
+
+    if (region.id === 'family-photos') {
+      unlock('family-photos', has('photo-back') ? 'Malena crece en cada foto. Elvira encanece. Beto sigue ausente: todos miran apenas por encima del lente, hacia él.' : 'La familia mira a una persona que la imagen no muestra.', 'tap');
+      return;
+    }
+
+    if (region.id === 'tap') {
       audio.current?.playDrip();
-      if (gesture === 'hold' || !session.has('tap-silence')) return unlock('tap-silence', 'Cortas la canilla. En el silencio se oye a Elvira: en esta casa nadie se queda afuera de la mesa.');
-      say('La canilla ya no tapa la frase. La cocina respira mejor.');
+      if (gesture === 'hold') unlock('tap-silence', 'Cuando cerrás la canilla, la cinta deja oír a Elvira: “siempre mirando, Beto. ¿Y vos cuándo vas a estar?”.', 'hold');
+      else say('El goteo tapa una voz. Cerralo y quedate escuchando.', false);
       return;
     }
 
-    if (id === 'mate') {
-      if (session.has('tap-silence') && session.has('mate-warm') && session.has('kettle-low') && !session.has('table-set')) {
-        return unlock('table-set', 'Acomodás el mate, la pava baja el fuego y la canilla por fin se calla. La cocina hace click, como una cerradura familiar: si hay mesa, Beto también tiene silla.');
-      }
-      if (gesture === 'hold' || !session.has('mate-warm')) return unlock('mate-warm', 'El mate esta tibio. Elvira lo dejo en la cocina para ir a buscar a Beto al living.');
-      say(session.has('kettle-low') && session.has('tap-silence') ? 'La cocina está casi armada. Tocá el mate como quien guarda un lugar en la ronda.' : 'La bombilla apunta hacia la tele. No es decoracion: es una flecha domestica.');
+    if (region.id === 'kettle') {
+      if (has('mate-warm')) unlock('kettle-low', 'Bajás la llama como hacía Elvira. El vapor revela en el azulejo: B + E, 1958.', 'tap');
+      else say('La pava no hierve: espera.', false);
       return;
     }
 
-    if (id === 'fridge') {
-      audio.current?.playHum(1400, 52);
-      if (session.has('tap-silence')) unlock('fridge-photo', 'La heladera deja de vibrar. Bajo un iman de Mar del Plata aparece media foto: una mano sosteniendo una camara.');
-      else say('La heladera Siam vibra con imanes viejos. No es una puerta: es archivo familiar con motor.');
-      return;
-    }
-
-    if (id === 'kettle') {
-      if (session.has('mate-warm')) unlock('kettle-low', 'Bajas el fuego. La pava deja de temblar. Falta cerrar el ritual donde empezó: en el mate.');
-      else say('El fuego azul esta demasiado vivo. Capaz el mate te diga por que nadie lo apago.');
-      return;
-    }
-
-    if (id === 'family-photos') {
-      return unlock('family-photos', session.has('photo-back') ?
-        'Ordenas las fotos por anio. En todas falta Beto. No desaparecio: era el que hacia existir a los demas.' :
-        'Elvira, Tito, Malena, primos, vecinos. Una familia entera mira al mismo punto, y ese punto no aparece.');
-    }
-
-    if (id === 'box') {
-      if (!session.has('tv-86')) {
-        say('La caja no cede. La etiqueta dice: abrir cuando vuelva el partido.');
+    if (region.id === 'mate') {
+      if (has('tap-silence') && has('mate-warm') && has('kettle-low') && !has('table-set')) {
+        unlock('table-set', 'Ponés el mate frente al lugar vacío. Por un segundo la silla cruje bajo el peso de Elvira.', 'hold');
         return;
       }
-      if (!session.has('elvira-place')) {
-        say('La caja tiene una cinta, pero no una testigo. Volvé al living: después del partido, Elvira todavía tiene algo que señalar.');
-        return;
-      }
-      if (!session.has('family-photos')) {
-        say('La caja se abre un poco, pero las fotos de la cocina todavia no te dieron el patron.');
-        return;
-      }
-      if (!session.has('table-set')) {
-        say('La caja golpea contra la madera, cerrada. No alcanza con mirar el pasado: en la cocina todavía falta poner la mesa.');
-        return;
-      }
-      return unlock('cassette', 'Abres la caja. Hay un casete: FINAL 86 - CASA DE MAMA. Adentro suena una frase cortada: Beto, ahora vos tambien.');
-    }
-
-    if (id === 'bed') {
-      say(session.has('cassette') ? 'Bajo la colcha hay marcas de rodillas: Malena escucho el casete aca hasta gastarlo.' : 'La cama de los primos no da miedo. Da algo peor: la certeza de una tarde que no termino.');
+      if (gesture === 'hold') unlock('mate-warm', 'La yerba conserva el perfume de cedrón de Elvira. Malena lo odiaba; Beto se lo preparaba igual.', 'hold');
+      else say('La bombilla marca una diagonal hacia el living.', false);
       return;
     }
 
-    if (id === 'bedroom-window') {
-      say('En el vidrio se refleja un patio de casa chorizo, ropa colgada, baldosas mojadas y una camara apoyada contra tu pecho.');
+    if (region.id === 'fridge') {
+      audio.current?.playHum(1200, 48);
+      if (has('tap-silence')) unlock('fridge-photo', 'Bajo el imán de Mar del Plata aparece Beto, reflejado en una fuente. Es la primera vez que le ves la cara.', 'tap');
+      else say('La heladera vibra. Los imanes no se mueven.', false);
       return;
     }
 
-    if (id === 'letter') {
-      const canOpenLetter = ['radio-tuned', 'tv-86', 'elvira-place', 'family-photos', 'table-set', 'cassette'].every(clueId => session.has(clueId));
-      if (!canOpenLetter) {
-        say(`La carta se resiste. Falta una pieza central: ${currentHint || 'la caja del cuarto'}`);
-        return;
-      }
+    if (region.id === 'box') {
+      if (!has('tv-86')) return say('La etiqueta dice FINAL 86, pero la cinta no arranca sin la tele.', false);
+      if (!has('elvira-place')) return say('La caja se traba. Falta saber quién estaba mirando la mesa.', false);
+      if (!has('family-photos')) return say('La caja cede un dedo. Las fotos todavía no explican hacia dónde miran.', false);
+      if (!has('table-set')) return say('La caja golpea contra la madera. La cocina todavía no cerró.', false);
+      unlock('cassette', 'La tapa abre. “ORIGIN — Malena, 1994”. Tu nombre está escrito con la letra de Beto. La respiración del principio era la tuya, dormido.', 'tap');
+      return;
+    }
+
+    if (region.id === 'bed') {
+      say(has('cassette') ? 'Bajo la colcha hay una marca rectangular, del tamaño de una cámara chica.' : 'La cama está hecha demasiado prolija para una casa que se vacía.', false);
+      return;
+    }
+
+    if (region.id === 'bedroom-window') {
+      say('En el vidrio se ve el patio. La ropa colgada tapa justo la mitad del reflejo.', false);
+      return;
+    }
+
+    if (region.id === 'letter') {
+      if (gesture !== 'hold') return say('El sobre se dobla, pero no abre.', false);
+      if (!isCompleteEnoughForLetter(has)) return say(nextPhysicalPrompt(has), false);
       mark('letter-open', 'hold');
       setPhase('decision');
       session.setDramaticState('decision');
       audio.current?.playHoldSilence();
-      say('Malena escribio: Beto, ya encontre tus cintas. Podes salir y contar quien miro por todos, o dejar la camara y aparecer. Elegi: puerta o espejo.');
+      say('Malena anotó: “El abuelo filmó para que no olvidáramos. Vos volviste para decidir si también querés aparecer”.', true);
       return;
     }
 
-    if (id === 'mirror') {
-      if (phase === 'decision') {
-        finish('stay');
-        return;
-      }
-      say('El espejo todavia muestra el cuarto sin Beto. Primero reconstruye la tarde completa.');
+    if (region.id === 'mirror') {
+      if (phase === 'decision') finish('mirror');
+      else say(has('cassette') ? 'El espejo devuelve el cuarto con un hueco a la altura del hombro.' : 'El espejo muestra el cuarto sin corregirlo.', false);
     }
-  }, [currentHint, finish, mark, move, phase, readyForLetter, say, unlock]);
+  }, [finish, has, mark, move, phase, say, unlock]);
 
-  const cancelGesture = () => {
-    if (holdTimer.current) clearTimeout(holdTimer.current);
-    holdTimer.current = null;
-    holdTriggered.current = false;
-    dragTriggered.current = false;
-    setHeld(null);
-  };
-
-  const pointerDown = (event: PointerEvent<HTMLButtonElement>, spot: Hotspot) => {
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    pointerHandled.current = false;
-    holdTriggered.current = false;
-    dragTriggered.current = false;
-    dragStartX.current = event.clientX;
-    if (!spot.holdable && !spot.draggable) return;
-    setHeld(spot.id);
-    if (spot.holdable) {
-      holdTimer.current = setTimeout(() => {
-        holdTimer.current = null;
-        holdTriggered.current = true;
-        setHeld(null);
-        resolve(spot.id, 'hold');
-      }, 700);
-    }
-  };
-
-  const pointerMove = (event: PointerEvent<HTMLButtonElement>, spot: Hotspot) => {
-    if (!spot.draggable || dragTriggered.current) return;
-    if (Math.abs(event.clientX - dragStartX.current) > 24) {
-      dragTriggered.current = true;
-      setHeld(null);
-      resolve(spot.id, 'drag');
-    }
-  };
-
-  const pointerUp = (spot: Hotspot) => {
-    if (holdTimer.current) clearTimeout(holdTimer.current);
-    holdTimer.current = null;
-    setHeld(null);
-    pointerHandled.current = true;
-    window.setTimeout(() => {
-      pointerHandled.current = false;
-    }, 0);
-    if (!holdTriggered.current && !dragTriggered.current) resolve(spot.id, 'click');
-    holdTriggered.current = false;
-    dragTriggered.current = false;
-  };
-
-  const clickFallback = (spot: Hotspot) => {
-    if (pointerHandled.current) return;
-    if (spot.draggable) return;
-    resolve(spot.id, 'click');
-  };
-
-  const completionTone = progress >= 100
-    ? 'La casa no quedo resuelta: quedo agradecida.'
-    : 'Todavia quedan ecos, pero el centro de la historia ya no esta enterrado.';
-  const conclusion = ending === 'leave'
-    ? `Saliste a Buenos Aires con la caja bajo el brazo. Malena va a escuchar la cinta. Beto no aparece en la foto, pero ya no es ausencia: es autor, testigo y deuda familiar. ${completionTone}`
-    : `Apoyaste la camara. La Polaroid tardo en revelarse y, por primera vez, Elvira, Tito, Malena y Beto quedaron dentro de la misma imagen. ${completionTone}`;
+  const inputController = createInputHandlers(active, setActive, input, setInput, sceneRect, resolve);
 
   if (!started) {
     return (
@@ -441,11 +279,11 @@ export default function Experience() {
         onClick={() => {
           setStarted(true);
           audio.current?.unlock();
-          say('Buenos Aires, casa de la abuela Elvira. Hay alguien que nunca aparece en las fotos. Empeza por el retrato del pasillo.');
+          say('Volvés a la casa de Elvira y Beto antes de que la vacíen. Malena dejó una nota: “buscá la cinta de la final”. La foto del pasillo está torcida.');
         }}
       >
         <span>ORIGIN</span>
-        <small>casa Elvira, Almagro, 1986</small>
+        <small>Almagro, última visita</small>
       </main>
     );
   }
@@ -453,101 +291,94 @@ export default function Experience() {
   if (ending) {
     return (
       <main className={styles.ending}>
-        <p>{conclusion}</p>
+        <p>{closingText(ending, complete)}</p>
         <button onClick={() => window.location.reload()}>volver a entrar</button>
       </main>
     );
   }
 
   return (
-    <main className={styles.experience} data-phase={phase}>
+    <main className={styles.experience} data-phase={phase} data-debug={debug}>
       <div className={styles.room}>
         <div
+          ref={artRef}
           className={styles.art}
           data-scene={scene}
           data-flags={flags}
+          data-reading={reading}
+          onPointerMove={event => updatePointer(event.clientX, event.clientY)}
           style={{
-            backgroundImage: `url(/bg-${scene}.png)`,
-            filter: searchAwake ? 'sepia(.12) saturate(1.12) brightness(1.04)' : undefined,
-            transition: 'filter 1.6s ease',
-          }}
+            backgroundImage: `url(${current.image})`,
+            '--light-x': `${input.pointer?.x ?? 500}`,
+            '--light-y': `${input.pointer?.y ?? 500}`,
+          } as CSSProperties}
         >
           <div className={styles.darkness} />
           <div className={styles.memoryLayer} aria-hidden="true" />
-          <aside className={styles.caseboard} aria-label="pistas encontradas">
-            <p>{progress}%</p>
-            <div className={styles.beat}>
-              <b>{currentBeat.act}</b>
-              <span>{currentBeat.title}</span>
+          {scene === 'living' && has('tv-86') && (
+            <div className={tv.memory} aria-hidden="true">
+              <img src="/tv-mexico-86.png" alt="" />
+              <i /><b />
             </div>
-            <small>{currentHint}</small>
-            <ol>
-              {clues.map(clue => (
-                <li key={clue.id} data-found={Boolean(visits[clue.id])}>
-                  {clue.label}
-                </li>
-              ))}
-            </ol>
-            <meter min={0} max={coreClues.length} value={coreProgress} aria-label="progreso del caso principal" />
-            <div className={styles.cast} aria-label="personajes reconstruidos">
-              {cast.map(person => {
-                const awake = person.when.every(id => Boolean(visits[id]));
-                return (
-                  <span key={person.id} data-awake={awake} title={awake ? person.role : 'todavía borroso'}>
-                    {person.name}
-                  </span>
-                );
-              })}
-            </div>
-          </aside>
-          <div className={styles.reward} data-visible={Boolean(reward)} aria-live="polite">{reward}</div>
-          {spots[scene].map(spot => (
+          )}
+          <div className={styles.dust} aria-hidden="true" />
+          {current.regions.map(region => (
             <button
-              key={spot.id}
-              data-hotspot={spot.id}
-              data-seen={has(spot.id) || has(`${spot.id}-tuned`) || has(`${spot.id}-back`)}
-              data-memory={spot.id === 'television' && has('tv-86') ? 'true' : undefined}
-              data-action={spot.draggable ? 'arrastrar' : spot.holdable ? 'mantener' : 'examinar'}
-              aria-label={spot.label}
-              className={`${styles.hotspot} ${effects[spot.id] || ''} ${held === spot.id ? styles.holding : ''} ${debug ? styles.debugHotspot : ''}`}
-              style={position(spot)}
-              onPointerDown={event => pointerDown(event, spot)}
-              onPointerMove={event => pointerMove(event, spot)}
-              onPointerUp={() => pointerUp(spot)}
-              onPointerCancel={cancelGesture}
-              onPointerLeave={() => {
-                if (held === spot.id) cancelGesture();
+              key={region.id}
+              data-hotspot={region.id}
+              data-kind={region.kind}
+              data-seen={has(region.id) || has(`${region.id}-tuned`) || has(`${region.id}-back`)}
+              aria-label={region.label}
+              className={`${styles.hotspot} ${effects[region.id] || ''} ${input.activeId === region.id ? styles.holding : ''} ${debug ? styles.debugHotspot : ''}`}
+              style={{ ...styleForRegion(region), '--hold': input.activeId === region.id ? input.holdProgress : 0 } as CSSProperties}
+              {...inputController.bind(region)}
+              onClick={event => {
+                event.preventDefault();
+                if (Date.now() - pointerResolvedAt.current < 250) return;
+                if (region.kind === 'hold' || region.kind === 'drag') return;
+                resolve(region, 'tap');
               }}
-              onClick={() => clickFallback(spot)}
+              onMouseUp={event => {
+                event.preventDefault();
+                if (Date.now() - pointerResolvedAt.current < 250) return;
+                if (region.kind === 'hold' || region.kind === 'drag') return;
+                resolve(region, 'tap');
+              }}
+              onTouchEnd={event => {
+                event.preventDefault();
+                if (Date.now() - pointerResolvedAt.current < 250) return;
+                if (region.kind === 'hold' || region.kind === 'drag') return;
+                resolve(region, 'tap');
+              }}
             >
-              <span>{spot.label}</span>
+              {debug && <span>{region.label} · {region.kind}</span>}
             </button>
           ))}
-          {scene !== 'hallway' && (
-            <button
-              className={styles.back}
-              aria-label="volver al pasillo"
-              onClick={() => move('hallway', phase === 'decision' ? 'Volves al pasillo. La calle y el espejo ya son dos finales distintos.' : 'Volves al pasillo.')}
-            >
-              &larr; pasillo
-            </button>
-          )}
-          {phase === 'decision' && letterOpen && (
-            <div className={styles.finalPrompt} role="group" aria-label="decision final">
-              <p>La casa ya no es un laberinto: es una decision.</p>
-              <button onClick={() => finish('leave')}>salir con la caja</button>
-              <button onClick={() => finish('stay')}>entrar en la foto</button>
-            </div>
-          )}
-          <div className={styles.caption} aria-live="polite">{message}</div>
-          {searchAwake && phase !== 'decision' && (
-            <p className={styles.question}>{currentHint || 'La carta de Malena ya puede abrirse.'}</p>
-          )}
-          <p className={styles.sceneName}>{scene === 'hallway' ? 'pasillo' : scene === 'living' ? 'living' : scene === 'kitchen' ? 'cocina' : 'cuarto'}</p>
+          {message && <div className={styles.caption} aria-live="polite">{message}</div>}
           {debug && (
-            <output className={styles.debug}>
-              {JSON.stringify({ phase, flags, progress, behavior: engine.current?.get().behavior, readings: engine.current?.get().readings.slice(-3) }, null, 1)}
-            </output>
+            <>
+              <svg className={styles.debugMap} viewBox="0 0 1000 1000" aria-hidden="true">
+                {current.regions.map(region => (
+                  <g key={region.id}>
+                    <rect x={region.rect.x} y={region.rect.y} width={region.rect.w} height={region.rect.h} />
+                    <text x={region.rect.x + 8} y={region.rect.y + 18}>{region.id} · {region.kind}</text>
+                  </g>
+                ))}
+                {input.pointer && <circle cx={input.pointer.x} cy={input.pointer.y} r="6" />}
+              </svg>
+              <output className={styles.debug}>
+                {JSON.stringify({
+                  scene,
+                  sceneSize: current.size,
+                  renderedRect,
+                  pointer: input.pointer && { x: Math.round(input.pointer.x), y: Math.round(input.pointer.y) },
+                  phase,
+                  flags,
+                  reading,
+                  behavior,
+                }, null, 1)}
+              </output>
+            </>
           )}
         </div>
       </div>

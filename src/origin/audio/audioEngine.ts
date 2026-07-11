@@ -222,6 +222,41 @@ export class AudioEngine {
     src.onended = () => this.activeNodes.delete(src);
   }
 
+  playWorldCupMemory() {
+    if (!this.ctx || !this.noiseBuffer || !this.master) return;
+    const now = this.ctx.currentTime;
+    const crowd = this.ctx.createBufferSource();
+    crowd.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(520, now);
+    filter.frequency.linearRampToValueAtTime(1450, now + 2.2);
+    filter.Q.value = 0.55;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.exponentialRampToValueAtTime(0.2, now + 0.8);
+    gain.gain.setValueAtTime(0.2, now + 2.5);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 4.8);
+    crowd.connect(filter).connect(gain).connect(this.master);
+    crowd.start(now);
+    crowd.stop(now + 5);
+    this.activeNodes.add(crowd);
+    crowd.onended = () => this.activeNodes.delete(crowd);
+
+    [0.45, 0.7, 1.05].forEach((offset, index) => {
+      const whistle = this.ctx!.createOscillator();
+      const whistleGain = this.ctx!.createGain();
+      whistle.frequency.setValueAtTime(1750 + index * 190, now + offset);
+      whistle.frequency.exponentialRampToValueAtTime(1150, now + offset + 0.24);
+      whistleGain.gain.setValueAtTime(0.001, now + offset);
+      whistleGain.gain.linearRampToValueAtTime(0.035, now + offset + 0.03);
+      whistleGain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.25);
+      whistle.connect(whistleGain).connect(this.master!);
+      whistle.start(now + offset);
+      whistle.stop(now + offset + 0.27);
+    });
+  }
+
   // Wooden creak / door
   playCreak(pitch: number = 80) {
     if (!this.ctx || !this.master) return;

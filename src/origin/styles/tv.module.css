@@ -1,0 +1,84 @@
+.memory {
+  position: absolute;
+  z-index: 7;
+  left: 56.9%;
+  top: 35.4%;
+  width: 16.1%;
+  height: 20.1%;
+  overflow: hidden;
+  border-radius: 18% 15% 20% 18% / 15% 16% 20% 20%;
+  pointer-events: none;
+  filter: brightness(0.88) contrast(1.12) saturate(0.72);
+  box-shadow: inset 0 0 15px 7px rgba(0, 0, 0, 0.72), 0 0 32px rgba(180, 225, 178, 0.28);
+  animation: reveal 4.8s cubic-bezier(0.65, 0, 0.2, 1) both;
+}
+
+.memory img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.08);
+  animation: roll 5.2s steps(1) infinite;
+}
+
+.memory i,
+.memory b {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.memory i {
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, rgba(0, 0, 0, 0.16) 2px 4px),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.025), rgba(0, 255, 100, 0.015), rgba(0, 80, 255, 0.03));
+  mix-blend-mode: screen;
+  animation: tear 0.14s steps(2) infinite;
+}
+
+.memory b {
+  box-shadow: inset 0 0 18px 8px #07100b;
+  background: radial-gradient(ellipse at center, transparent 42%, rgba(0, 0, 0, 0.55) 100%);
+  animation: pulse 1.9s ease-in-out infinite;
+}
+
+@keyframes reveal {
+  0% { opacity: 0; transform: scaleY(0.02); filter: brightness(3); }
+  8% { opacity: 1; transform: scaleY(1); }
+  15%, 68% {
+    left: 12%;
+    top: 12%;
+    width: 76%;
+    height: 64%;
+    border-radius: 5%;
+    filter: brightness(0.94) contrast(1.08) saturate(0.78);
+    box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.58), inset 0 0 30px 10px rgba(0, 0, 0, 0.66);
+  }
+  100% {
+    left: 56.9%;
+    top: 35.4%;
+    width: 16.1%;
+    height: 20.1%;
+  }
+}
+
+@keyframes roll {
+  0%, 91% { transform: scale(1.08) translateY(0); }
+  92% { transform: scale(1.08) translateY(5%); }
+  94% { transform: scale(1.08) translateY(-3%); }
+  96%, 100% { transform: scale(1.08) translateY(0); }
+}
+
+@keyframes tear {
+  50% { transform: translateX(0.7px); opacity: 0.7; }
+}
+
+@keyframes pulse {
+  50% { opacity: 0.82; filter: brightness(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory,
+  .memory img,
+  .memory i,
+  .memory b { animation: none; }
+}
