@@ -56,13 +56,14 @@ const spots: Record<Scene, Hotspot[]> = {
 };
 
 const clues: Clue[] = [
-  { id: 'photo-back', label: 'reverso', hint: 'El nombre raspado esta atras de la foto.' },
+  { id: 'photo-back', label: 'reverso', hint: 'Mira la foto del pasillo: ahi empieza el faltante.' },
   { id: 'radio-tuned', label: 'voz', hint: 'La Spica guarda la frecuencia de la tarde.' },
   { id: 'tv-86', label: 'partido', hint: 'La tele necesita la radio para volver al 86.' },
   { id: 'family-photos', label: 'fotos', hint: 'En la cocina falta siempre la misma persona.' },
   { id: 'tap-silence', label: 'silencio', hint: 'La canilla tapa una frase de Elvira.' },
   { id: 'mate-warm', label: 'mate', hint: 'El mate marca quien dejo la ronda.' },
   { id: 'cassette', label: 'casete', hint: 'La caja del cuarto se abre cuando vuelve el partido.' },
+  { id: 'letter-open', label: 'carta', hint: 'Abri la carta de Malena y elegi que hacer con Beto.' },
 ];
 
 const position = (spot: Hotspot): CSSProperties => ({
@@ -79,6 +80,7 @@ export default function Experience() {
   const holdTriggered = useRef(false);
   const dragStartX = useRef(0);
   const dragTriggered = useRef(false);
+  const pointerHandled = useRef(false);
 
   const [started, setStarted] = useState(false);
   const [scene, setScene] = useState<Scene>('hallway');
@@ -150,8 +152,12 @@ export default function Experience() {
     else audio.current?.playHeartbeat(5000);
   }, []);
 
-  const readyForLetter = ['photo-back', 'radio-tuned', 'tv-86', 'family-photos', 'tap-silence', 'mate-warm', 'cassette']
+  const readyForLetter = ['radio-tuned', 'tv-86', 'family-photos', 'cassette']
     .every(id => Boolean(visits[id]));
+  const letterOpen = Boolean(visits['letter-open']);
+  const currentHint = phase === 'decision' ? 'Final: puerta o espejo.' :
+    readyForLetter && !letterOpen ? 'Abri la carta de Malena: ya tenes lo necesario.' :
+      nextClue?.hint;
 
   const resolve = useCallback((id: string, gesture: 'click' | 'hold' | 'drag' = 'click') => {
     const session = engine.current;
@@ -165,7 +171,7 @@ export default function Experience() {
       if (phase === 'decision') finish('leave');
       else {
         audio.current?.playLocked();
-        say(readyForLetter ? 'Podes irte, pero todavia no abriste la carta. La puerta no quiere ser el final facil.' : `La calle esta ahi, pero la casa te retiene. Pista pendiente: ${nextClue?.hint || 'busca en el cuarto'}`);
+        say(readyForLetter ? 'Podes salir cuando entiendas para que. Falta abrir la carta de Malena: ahi te dice que llevarte de esta casa.' : `La calle esta ahi, pero salir sin historia es solo mudarse de pantalla. Pista pendiente: ${currentHint || 'busca en el cuarto'}`);
       }
       return;
     }
@@ -177,7 +183,8 @@ export default function Experience() {
         audio.current?.playPaperRustle();
         return unlock('photo-back', 'Das vuelta la foto. Atras dice: Elvira, Tito, Malena, Diego en la tele. Donde deberia decir Beto, el papel esta raspado.');
       }
-      say(session.has('photo-back') ? 'Ahora sabes que no falta una cara: falta quien estaba detras del lente.' : 'El marco esta flojo. Mantenelo apretado: las casas viejas hablan por atras.');
+      if (!session.has('photo-back')) return unlock('photo-back', 'El marco se abre con un crack chiquito. Atras hay una lista de nombres y uno raspado: Beto.');
+      say('Ahora sabes que no falta una cara: falta quien estaba detras del lente.');
       return;
     }
 
@@ -192,7 +199,7 @@ export default function Experience() {
       if (gesture === 'drag') {
         setPhase('confrontation');
         audio.current?.playTVStatic(0.45, 1800);
-        return unlock('radio-tuned', 'La Spica engancha una transmision: Victor Hugo se mezcla con una voz de familia. Beto, deja de filmar el televisor y veni a la foto.');
+        return unlock('radio-tuned', 'La Spica engancha una transmision: Victor Hugo se mezcla con una voz de familia. Beto, deja de filmar el televisor y veni a la foto, que Elvira ya esta posando.');
       }
       audio.current?.playStaticZap();
       say('La perilla no se clickea: se arrastra. Tiene una frecuencia escondida, como las radios de antes.');
@@ -207,12 +214,12 @@ export default function Experience() {
       }
       session.setDramaticState('confrontation');
       setPhase('confrontation');
-      return unlock('tv-86', 'La pantalla entra en foco: Argentina campeon. El living vibra, Elvira llora, Tito golpea la mesa, y Beto sigue filmando en vez de aparecer.');
+      return unlock('tv-86', 'La pantalla entra en foco: Argentina campeon. El living vibra, Elvira llora, Tito golpea la mesa, un vecino grita desde el pulmon del edificio, y Beto sigue filmando.');
     }
 
     if (id === 'chair') {
-      if (session.has('tv-86')) unlock('elvira-place', 'En el sillon aparece por un segundo Elvira: no fantasma, recuerdo. Senala la cocina, como si el mate completara la escena.');
-      else say('El sillon tiene la forma de Elvira: espalda chica, manta pesada, ojos clavados en la tele.');
+      if (session.has('tv-86')) unlock('elvira-place', 'En el sillon aparece por un segundo Elvira: no fantasma, recuerdo. Senala la cocina y tira un “nene, el mate no se abandona” con autoridad de cadena nacional.');
+      else say('El sillon tiene la forma de Elvira: espalda chica, manta pesada, ojos clavados en la tele y paciencia cero para los distraidos.');
       return;
     }
 
@@ -223,13 +230,13 @@ export default function Experience() {
 
     if (id === 'tap') {
       audio.current?.playDrip();
-      if (gesture === 'hold') return unlock('tap-silence', 'Cortas la canilla. En el silencio se oye a Elvira: en esta casa nadie se queda afuera de la mesa.');
-      say('El goteo tapa algo. Mantenelo hasta cortar el agua.');
+      if (gesture === 'hold' || !session.has('tap-silence')) return unlock('tap-silence', 'Cortas la canilla. En el silencio se oye a Elvira: en esta casa nadie se queda afuera de la mesa.');
+      say('La canilla ya no tapa la frase. La cocina respira mejor.');
       return;
     }
 
     if (id === 'mate') {
-      if (gesture === 'hold') return unlock('mate-warm', 'El mate esta tibio. Elvira lo dejo en la cocina para ir a buscar a Beto al living.');
+      if (gesture === 'hold' || !session.has('mate-warm')) return unlock('mate-warm', 'El mate esta tibio. Elvira lo dejo en la cocina para ir a buscar a Beto al living.');
       say('La bombilla apunta hacia la tele. No es decoracion: es una flecha domestica.');
       return;
     }
@@ -276,30 +283,27 @@ export default function Experience() {
     }
 
     if (id === 'letter') {
-      if (gesture !== 'hold') {
-        say('El sobre de Malena no se abre con un click. Mantenelo, como quien lee algo que no quiere leer.');
-        return;
-      }
-      if (!readyForLetter) {
-        say(`La carta se resiste. Falta una pieza: ${nextClue?.hint || 'la caja del cuarto'}`);
+      const canOpenLetter = ['radio-tuned', 'tv-86', 'family-photos', 'cassette'].every(clueId => session.has(clueId));
+      if (!canOpenLetter) {
+        say(`La carta se resiste. Falta una pieza central: ${currentHint || 'la caja del cuarto'}`);
         return;
       }
       mark('letter-open', 'hold');
       setPhase('decision');
       session.setDramaticState('decision');
       audio.current?.playHoldSilence();
-      say('Malena escribio: Beto, si seguis filmando, la casa te repite. Si queres aparecer, deja la camara. El espejo ya esta listo.');
+      say('Malena escribio: Beto, ya encontre tus cintas. Podes salir y contar quien miro por todos, o dejar la camara y aparecer. Elegi: puerta o espejo.');
       return;
     }
 
     if (id === 'mirror') {
-      if (gesture === 'hold' && phase === 'decision') {
+      if (phase === 'decision') {
         finish('stay');
         return;
       }
-      say(phase === 'decision' ? 'Tu reflejo ya no se esconde. Mantenelo: es la primera foto en la que podes entrar.' : 'El espejo todavia muestra el cuarto sin Beto. Primero reconstruye la tarde completa.');
+      say('El espejo todavia muestra el cuarto sin Beto. Primero reconstruye la tarde completa.');
     }
-  }, [finish, mark, move, nextClue?.hint, phase, readyForLetter, say, unlock]);
+  }, [currentHint, finish, mark, move, phase, readyForLetter, say, unlock]);
 
   const cancelGesture = () => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
@@ -311,6 +315,7 @@ export default function Experience() {
 
   const pointerDown = (event: PointerEvent<HTMLButtonElement>, spot: Hotspot) => {
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    pointerHandled.current = false;
     holdTriggered.current = false;
     dragTriggered.current = false;
     dragStartX.current = event.clientX;
@@ -339,13 +344,23 @@ export default function Experience() {
     if (holdTimer.current) clearTimeout(holdTimer.current);
     holdTimer.current = null;
     setHeld(null);
+    pointerHandled.current = true;
+    window.setTimeout(() => {
+      pointerHandled.current = false;
+    }, 0);
     if (!holdTriggered.current && !dragTriggered.current) resolve(spot.id, 'click');
     holdTriggered.current = false;
     dragTriggered.current = false;
   };
 
+  const clickFallback = (spot: Hotspot) => {
+    if (pointerHandled.current) return;
+    if (spot.draggable) return;
+    resolve(spot.id, 'click');
+  };
+
   const conclusion = ending === 'leave'
-    ? 'Saliste a Buenos Aires con la caja bajo el brazo. Beto no aparece en la foto, pero ya no es ausencia: es autor.'
+    ? 'Saliste a Buenos Aires con la caja bajo el brazo. Malena va a escuchar la cinta. Beto no aparece en la foto, pero ya no es ausencia: es autor, testigo y deuda familiar.'
     : 'Apoyaste la camara. La Polaroid tardo en revelarse y, por primera vez, Elvira, Tito, Malena y Beto quedaron dentro de la misma imagen.';
 
   if (!started) {
@@ -390,6 +405,7 @@ export default function Experience() {
           <div className={styles.memoryLayer} aria-hidden="true" />
           <aside className={styles.caseboard} aria-label="pistas encontradas">
             <p>{progress}%</p>
+            <small>{currentHint}</small>
             <ol>
               {clues.map(clue => (
                 <li key={clue.id} data-found={Boolean(visits[clue.id])}>
@@ -414,6 +430,7 @@ export default function Experience() {
               onPointerLeave={() => {
                 if (held === spot.id) cancelGesture();
               }}
+              onClick={() => clickFallback(spot)}
             >
               <span>{spot.label}</span>
             </button>
@@ -427,9 +444,16 @@ export default function Experience() {
               &larr; pasillo
             </button>
           )}
+          {phase === 'decision' && letterOpen && (
+            <div className={styles.finalPrompt} role="group" aria-label="decision final">
+              <p>La casa ya no es un laberinto: es una decision.</p>
+              <button onClick={() => finish('leave')}>salir con la caja</button>
+              <button onClick={() => finish('stay')}>entrar en la foto</button>
+            </div>
+          )}
           <div className={styles.caption} aria-live="polite">{message}</div>
           {searchAwake && phase !== 'decision' && (
-            <p className={styles.question}>{nextClue?.hint || 'La carta de Malena ya puede abrirse.'}</p>
+            <p className={styles.question}>{currentHint || 'La carta de Malena ya puede abrirse.'}</p>
           )}
           <p className={styles.sceneName}>{scene === 'hallway' ? 'pasillo' : scene === 'living' ? 'living' : scene === 'kitchen' ? 'cocina' : 'cuarto'}</p>
           {debug && (

@@ -33,7 +33,7 @@ export class AudioEngine {
       this.initRoomTone();
     }
     if (this.ctx.state === 'suspended') await this.ctx.resume();
-    if ('speechSynthesis' in window) window.speechSynthesis.getVoices();
+    await this.loadBrowserVoices();
   }
 
   async speak(text: string) {
@@ -77,6 +77,30 @@ export class AudioEngine {
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
+    const southAmericanLocales = ['es-ar', 'es-uy', 'es-cl', 'es-co', 'es-pe', 'es-ve', 'es-bo', 'es-py', 'es-ec'];
+    const latinFallbackLocales = ['es-419', 'es-us'];
+    const preferredMaleHints = ['tomas', 'tomás', 'diego', 'jorge', 'carlos', 'pablo', 'juan', 'miguel', 'male', 'masculino', 'hombre'];
+    const bannedHints = ['españa', 'espana', 'spain', 'mexico', 'méxico', 'mexicana', 'sabina'];
+    const validLatinVoice = (voiceCandidate: SpeechSynthesisVoice) => {
+      const lang = voiceCandidate.lang.toLowerCase();
+      const name = voiceCandidate.name.toLowerCase();
+      return lang.startsWith('es') && lang !== 'es-es' && lang !== 'es-mx' && !bannedHints.some(hint => name.includes(hint));
+    };
+    const preferredVoice = voices.find(v => southAmericanLocales.includes(v.lang.toLowerCase()) && preferredMaleHints.some(hint => v.name.toLowerCase().includes(hint))) ||
+      voices.find(v => southAmericanLocales.includes(v.lang.toLowerCase())) ||
+      voices.find(v => latinFallbackLocales.includes(v.lang.toLowerCase()) && preferredMaleHints.some(hint => v.name.toLowerCase().includes(hint)) && validLatinVoice(v)) ||
+      voices.find(v => latinFallbackLocales.includes(v.lang.toLowerCase()) && validLatinVoice(v)) ||
+      voices.find(validLatinVoice);
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+      utterance.lang = preferredVoice.lang;
+      utterance.rate = 0.92;
+      utterance.pitch = 0.78;
+      utterance.volume = 0.9;
+      synth.speak(utterance);
+      return;
+    }
     const allowedLocales = ['es-ar', 'es-uy', 'es-cl', 'es-co', 'es-pe', 'es-ve', 'es-bo', 'es-py'];
     const maleHints = ['tomas', 'tomás', 'diego', 'jorge', 'carlos', 'pablo', 'juan', 'male', 'masculino', 'hombre'];
     const voice = voices.find(v => allowedLocales.includes(v.lang.toLowerCase()) && maleHints.some(hint => v.name.toLowerCase().includes(hint))) ||
@@ -93,6 +117,21 @@ export class AudioEngine {
     utterance.pitch = 0.82;
     utterance.volume = 0.9;
     synth.speak(utterance);
+  }
+
+  private loadBrowserVoices() {
+    if (!('speechSynthesis' in window)) return Promise.resolve();
+    const synth = window.speechSynthesis;
+    if (synth.getVoices().length > 0) return Promise.resolve();
+
+    return new Promise<void>(resolve => {
+      const done = () => {
+        synth.removeEventListener('voiceschanged', done);
+        resolve();
+      };
+      synth.addEventListener('voiceschanged', done, { once: true });
+      window.setTimeout(done, 700);
+    });
   }
 
   private playNarratorMurmur(text: string) {
