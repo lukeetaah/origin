@@ -3,3 +3,4 @@
 .caseboard small{display:block;margin:-.2rem 0 .55rem;color:rgba(230,218,188,.72);font:.6rem/1.25 'DM Mono',monospace}
 .hotspot[data-hotspot="letter"]{z-index:5}.hotspot[data-hotspot="mirror"]{z-index:4}
 .debug{pointer-events:none}.finalPrompt{z-index:20}
+.art[data-scene="living"][data-flags~="tv-86"] .memoryLayer::before{left:53%;top:34%;width:25%;height:31%;border-radius:40%;background:radial-gradient(ellipse at 45% 45%,rgba(185,235,170,.08),transparent 62%);box-shadow:0 0 38px rgba(172,236,160,.12);opacity:1;animation:goalFlash 2.8s infinite}.art[data-scene="living"][data-flags~="tv-86"] .memoryLayer::after{left:51%;top:68%;width:30%;height:11%;background:radial-gradient(ellipse,rgba(255,236,166,.13),transparent 72%);opacity:1}
