@@ -22,6 +22,7 @@ type Clue = {
   id: string;
   label: string;
   hint: string;
+  reward: string;
 };
 
 const spots: Record<Scene, Hotspot[]> = {
@@ -56,15 +57,17 @@ const spots: Record<Scene, Hotspot[]> = {
 };
 
 const clues: Clue[] = [
-  { id: 'photo-back', label: 'reverso', hint: 'Mira la foto del pasillo: ahi empieza el faltante.' },
-  { id: 'radio-tuned', label: 'voz', hint: 'La Spica guarda la frecuencia de la tarde.' },
-  { id: 'tv-86', label: 'partido', hint: 'La tele necesita la radio para volver al 86.' },
-  { id: 'family-photos', label: 'fotos', hint: 'En la cocina falta siempre la misma persona.' },
-  { id: 'tap-silence', label: 'silencio', hint: 'La canilla tapa una frase de Elvira.' },
-  { id: 'mate-warm', label: 'mate', hint: 'El mate marca quien dejo la ronda.' },
-  { id: 'cassette', label: 'casete', hint: 'La caja del cuarto se abre cuando vuelve el partido.' },
-  { id: 'letter-open', label: 'carta', hint: 'Abri la carta de Malena y elegi que hacer con Beto.' },
+  { id: 'photo-back', label: 'reverso', hint: 'Mantené la foto del pasillo: ahi empieza el faltante.', reward: 'Caso abierto: no falta una cara, falta quien miraba.' },
+  { id: 'radio-tuned', label: 'voz', hint: 'Arrastrá la Spica hasta que vuelva una frecuencia familiar.', reward: 'La casa ya tiene voz: ahora puede discutir con la tele.' },
+  { id: 'tv-86', label: 'partido', hint: 'Con la radio sintonizada, tocá la TV y dejá entrar la final.', reward: 'Gol de memoria: el 86 volvió, pero Beto sigue fuera de cuadro.' },
+  { id: 'family-photos', label: 'fotos', hint: 'En la cocina, revisá las fotos: todas miran al mismo ausente.', reward: 'Patrón encontrado: Beto hacía existir a los demás.' },
+  { id: 'tap-silence', label: 'silencio', hint: 'Mantené la canilla: cuando calle, la casa habla.', reward: 'Silencio ganado: Elvira dejó una regla de familia.' },
+  { id: 'mate-warm', label: 'mate', hint: 'Mantené el mate: la bombilla señala una deuda.', reward: 'Ritual recuperado: nadie se va de la ronda sin ser nombrado.' },
+  { id: 'cassette', label: 'casete', hint: 'La caja del cuarto se abre cuando partido y fotos coinciden.', reward: 'Prueba física: FINAL 86 - CASA DE MAMA.' },
+  { id: 'letter-open', label: 'carta', hint: 'Mantené la carta de Malena y elegí qué hacer con Beto.', reward: 'Decisión abierta: contar la historia o entrar en la foto.' },
 ];
+
+const coreClues = ['photo-back', 'radio-tuned', 'tv-86', 'family-photos', 'cassette', 'letter-open'];
 
 const position = (spot: Hotspot): CSSProperties => ({
   left: `${spot.x}%`,
@@ -90,6 +93,7 @@ export default function Experience() {
   const [ending, setEnding] = useState<'leave' | 'stay' | null>(null);
   const [debug, setDebug] = useState(false);
   const [searchAwake, setSearchAwake] = useState(false);
+  const [reward, setReward] = useState('');
   const [, rerender] = useState(0);
 
   useEffect(() => {
@@ -111,6 +115,7 @@ export default function Experience() {
   const unlockedClues = clues.filter(clue => Boolean(visits[clue.id]));
   const nextClue = clues.find(clue => !visits[clue.id]);
   const progress = Math.round((unlockedClues.length / clues.length) * 100);
+  const coreProgress = coreClues.filter(id => Boolean(visits[id])).length;
 
   const has = useCallback((id: string) => Boolean(engine.current?.has(id)), []);
 
@@ -127,13 +132,20 @@ export default function Experience() {
   }, [scene]);
 
   const unlock = useCallback((id: string, text: string) => {
+    const wasNew = !engine.current?.has(id);
     if (!engine.current?.has(id)) {
       mark(id, 'hold');
       audio.current?.playMemoryUnlock();
     }
+    const clue = clues.find(item => item.id === id);
+    if (wasNew && clue) {
+      const rewardText = `MEMORIA ${unlockedClues.length + 1}/${clues.length}: ${clue.reward}`;
+      setReward(rewardText);
+      window.setTimeout(() => setReward(current => current === rewardText ? '' : current), 3600);
+    }
     setSearchAwake(true);
     say(text);
-  }, [mark, say]);
+  }, [mark, say, unlockedClues.length]);
 
   const move = useCallback((next: Scene, text: string) => {
     engine.current?.visit(next);
@@ -155,9 +167,36 @@ export default function Experience() {
   const readyForLetter = ['radio-tuned', 'tv-86', 'family-photos', 'cassette']
     .every(id => Boolean(visits[id]));
   const letterOpen = Boolean(visits['letter-open']);
-  const currentHint = phase === 'decision' ? 'Final: puerta o espejo.' :
-    readyForLetter && !letterOpen ? 'Abri la carta de Malena: ya tenes lo necesario.' :
-      nextClue?.hint;
+  const currentBeat = letterOpen ? {
+    act: 'Acto V',
+    title: 'La foto imposible',
+    objective: 'Elegí: salir con la caja o entrar al espejo.',
+  } : readyForLetter ? {
+    act: 'Acto IV',
+    title: 'La carta de Malena',
+    objective: 'Volvé al cuarto y mantené el sobre: ya tenés las pruebas.',
+  } : !visits['photo-back'] ? {
+    act: 'Acto I',
+    title: 'El ausente',
+    objective: 'Mantené la foto del pasillo hasta que revele el reverso.',
+  } : !visits['radio-tuned'] || !visits['tv-86'] ? {
+    act: 'Acto II',
+    title: 'La tarde del 86',
+    objective: visits['radio-tuned'] ? 'Tocá la TV: la transmisión ya tiene voz.' : 'En el living, arrastrá la radio Spica para sintonizar la final.',
+  } : !visits['family-photos'] ? {
+    act: 'Acto III',
+    title: 'La mesa de Elvira',
+    objective: 'En la cocina, revisá las fotos familiares: falta siempre el mismo.',
+  } : !visits['cassette'] ? {
+    act: 'Acto III',
+    title: 'La prueba',
+    objective: 'En el cuarto, abrí la caja de casetes: el partido ya volvió.',
+  } : {
+    act: 'Acto IV',
+    title: 'Lo que se hereda',
+    objective: nextClue?.hint || 'Seguí los objetos tibios de la casa.',
+  };
+  const currentHint = phase === 'decision' ? 'Final: puerta o espejo.' : currentBeat.objective;
 
   const resolve = useCallback((id: string, gesture: 'click' | 'hold' | 'drag' = 'click') => {
     const session = engine.current;
@@ -359,9 +398,12 @@ export default function Experience() {
     resolve(spot.id, 'click');
   };
 
+  const completionTone = progress >= 100
+    ? 'La casa no quedo resuelta: quedo agradecida.'
+    : 'Todavia quedan ecos, pero el centro de la historia ya no esta enterrado.';
   const conclusion = ending === 'leave'
-    ? 'Saliste a Buenos Aires con la caja bajo el brazo. Malena va a escuchar la cinta. Beto no aparece en la foto, pero ya no es ausencia: es autor, testigo y deuda familiar.'
-    : 'Apoyaste la camara. La Polaroid tardo en revelarse y, por primera vez, Elvira, Tito, Malena y Beto quedaron dentro de la misma imagen.';
+    ? `Saliste a Buenos Aires con la caja bajo el brazo. Malena va a escuchar la cinta. Beto no aparece en la foto, pero ya no es ausencia: es autor, testigo y deuda familiar. ${completionTone}`
+    : `Apoyaste la camara. La Polaroid tardo en revelarse y, por primera vez, Elvira, Tito, Malena y Beto quedaron dentro de la misma imagen. ${completionTone}`;
 
   if (!started) {
     return (
@@ -405,6 +447,10 @@ export default function Experience() {
           <div className={styles.memoryLayer} aria-hidden="true" />
           <aside className={styles.caseboard} aria-label="pistas encontradas">
             <p>{progress}%</p>
+            <div className={styles.beat}>
+              <b>{currentBeat.act}</b>
+              <span>{currentBeat.title}</span>
+            </div>
             <small>{currentHint}</small>
             <ol>
               {clues.map(clue => (
@@ -413,13 +459,16 @@ export default function Experience() {
                 </li>
               ))}
             </ol>
+            <meter min={0} max={coreClues.length} value={coreProgress} aria-label="progreso del caso principal" />
           </aside>
+          <div className={styles.reward} data-visible={Boolean(reward)} aria-live="polite">{reward}</div>
           {spots[scene].map(spot => (
             <button
               key={spot.id}
               data-hotspot={spot.id}
               data-seen={has(spot.id) || has(`${spot.id}-tuned`) || has(`${spot.id}-back`)}
               data-memory={spot.id === 'television' && has('tv-86') ? 'true' : undefined}
+              data-action={spot.draggable ? 'arrastrar' : spot.holdable ? 'mantener' : 'examinar'}
               aria-label={spot.label}
               className={`${styles.hotspot} ${effects[spot.id] || ''} ${held === spot.id ? styles.holding : ''} ${debug ? styles.debugHotspot : ''}`}
               style={position(spot)}
