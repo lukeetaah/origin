@@ -60,14 +60,23 @@ const clues: Clue[] = [
   { id: 'photo-back', label: 'reverso', hint: 'Mantené la foto del pasillo: ahi empieza el faltante.', reward: 'Caso abierto: no falta una cara, falta quien miraba.' },
   { id: 'radio-tuned', label: 'voz', hint: 'Arrastrá la Spica hasta que vuelva una frecuencia familiar.', reward: 'La casa ya tiene voz: ahora puede discutir con la tele.' },
   { id: 'tv-86', label: 'partido', hint: 'Con la radio sintonizada, tocá la TV y dejá entrar la final.', reward: 'Gol de memoria: el 86 volvió, pero Beto sigue fuera de cuadro.' },
+  { id: 'elvira-place', label: 'sillón', hint: 'Después del partido, revisá el sillón: Elvira señala el próximo ritual.', reward: 'Testigo encontrado: Elvira ya no mira la tele, te mira a vos.' },
   { id: 'family-photos', label: 'fotos', hint: 'En la cocina, revisá las fotos: todas miran al mismo ausente.', reward: 'Patrón encontrado: Beto hacía existir a los demás.' },
   { id: 'tap-silence', label: 'silencio', hint: 'Mantené la canilla: cuando calle, la casa habla.', reward: 'Silencio ganado: Elvira dejó una regla de familia.' },
   { id: 'mate-warm', label: 'mate', hint: 'Mantené el mate: la bombilla señala una deuda.', reward: 'Ritual recuperado: nadie se va de la ronda sin ser nombrado.' },
-  { id: 'cassette', label: 'casete', hint: 'La caja del cuarto se abre cuando partido y fotos coinciden.', reward: 'Prueba física: FINAL 86 - CASA DE MAMA.' },
+  { id: 'table-set', label: 'mesa', hint: 'Combiná canilla, mate y pava: la cocina necesita quedar en calma.', reward: 'Mesa puesta: ahora la casa acepta que alguien vuelva a aparecer.' },
+  { id: 'cassette', label: 'casete', hint: 'La caja se abre cuando partido, fotos y mesa quedan alineados.', reward: 'Prueba física: FINAL 86 - CASA DE MAMA.' },
   { id: 'letter-open', label: 'carta', hint: 'Mantené la carta de Malena y elegí qué hacer con Beto.', reward: 'Decisión abierta: contar la historia o entrar en la foto.' },
 ];
 
-const coreClues = ['photo-back', 'radio-tuned', 'tv-86', 'family-photos', 'cassette', 'letter-open'];
+const coreClues = ['photo-back', 'radio-tuned', 'tv-86', 'elvira-place', 'family-photos', 'table-set', 'cassette', 'letter-open'];
+
+const cast = [
+  { id: 'elvira', name: 'Elvira', when: ['elvira-place'], role: 'la abuela que ordena la mesa' },
+  { id: 'beto', name: 'Beto', when: ['photo-back', 'tv-86'], role: 'el que filmaba para no aparecer' },
+  { id: 'malena', name: 'Malena', when: ['cassette'], role: 'la nieta que guardó la cinta' },
+  { id: 'tito', name: 'Tito', when: ['tv-86', 'family-photos'], role: 'el grito del gol contra la pared' },
+];
 
 const position = (spot: Hotspot): CSSProperties => ({
   left: `${spot.x}%`,
@@ -164,9 +173,10 @@ export default function Experience() {
     else audio.current?.playHeartbeat(5000);
   }, []);
 
-  const readyForLetter = ['radio-tuned', 'tv-86', 'family-photos', 'cassette']
+  const readyForLetter = ['radio-tuned', 'tv-86', 'elvira-place', 'family-photos', 'table-set', 'cassette']
     .every(id => Boolean(visits[id]));
   const letterOpen = Boolean(visits['letter-open']);
+  const tableReady = Boolean(visits['tap-silence'] && visits['mate-warm'] && visits['kettle-low']);
   const currentBeat = letterOpen ? {
     act: 'Acto V',
     title: 'La foto imposible',
@@ -183,14 +193,22 @@ export default function Experience() {
     act: 'Acto II',
     title: 'La tarde del 86',
     objective: visits['radio-tuned'] ? 'Tocá la TV: la transmisión ya tiene voz.' : 'En el living, arrastrá la radio Spica para sintonizar la final.',
+  } : !visits['elvira-place'] ? {
+    act: 'Acto II',
+    title: 'La testigo',
+    objective: 'Tocá el sillón de Elvira: alguien tiene que decirte hacia dónde mirar.',
   } : !visits['family-photos'] ? {
     act: 'Acto III',
     title: 'La mesa de Elvira',
     objective: 'En la cocina, revisá las fotos familiares: falta siempre el mismo.',
+  } : !visits['table-set'] ? {
+    act: 'Acto III',
+    title: 'Poner la mesa',
+    objective: tableReady ? 'Tocá el mate: la cocina ya quedó en calma.' : 'Ordená la cocina: canilla en silencio, mate tibio y fuego bajo.',
   } : !visits['cassette'] ? {
     act: 'Acto III',
     title: 'La prueba',
-    objective: 'En el cuarto, abrí la caja de casetes: el partido ya volvió.',
+    objective: 'En el cuarto, abrí la caja de casetes: la casa ya autorizó la prueba.',
   } : {
     act: 'Acto IV',
     title: 'Lo que se hereda',
@@ -257,7 +275,7 @@ export default function Experience() {
     }
 
     if (id === 'chair') {
-      if (session.has('tv-86')) unlock('elvira-place', 'En el sillon aparece por un segundo Elvira: no fantasma, recuerdo. Senala la cocina y tira un “nene, el mate no se abandona” con autoridad de cadena nacional.');
+      if (session.has('tv-86')) unlock('elvira-place', 'En el sillon aparece por un segundo Elvira: no fantasma, recuerdo. Senala la cocina y tira un “nene, el mate no se abandona” con autoridad de cadena nacional. La busqueda deja de ser sobre una foto: ahora es sobre volver a poner la mesa.');
       else say('El sillon tiene la forma de Elvira: espalda chica, manta pesada, ojos clavados en la tele y paciencia cero para los distraidos.');
       return;
     }
@@ -275,8 +293,11 @@ export default function Experience() {
     }
 
     if (id === 'mate') {
+      if (session.has('tap-silence') && session.has('mate-warm') && session.has('kettle-low') && !session.has('table-set')) {
+        return unlock('table-set', 'Acomodás el mate, la pava baja el fuego y la canilla por fin se calla. La cocina hace click, como una cerradura familiar: si hay mesa, Beto también tiene silla.');
+      }
       if (gesture === 'hold' || !session.has('mate-warm')) return unlock('mate-warm', 'El mate esta tibio. Elvira lo dejo en la cocina para ir a buscar a Beto al living.');
-      say('La bombilla apunta hacia la tele. No es decoracion: es una flecha domestica.');
+      say(session.has('kettle-low') && session.has('tap-silence') ? 'La cocina está casi armada. Tocá el mate como quien guarda un lugar en la ronda.' : 'La bombilla apunta hacia la tele. No es decoracion: es una flecha domestica.');
       return;
     }
 
@@ -288,7 +309,7 @@ export default function Experience() {
     }
 
     if (id === 'kettle') {
-      if (session.has('mate-warm')) unlock('kettle-low', 'Bajas el fuego. La pava deja de temblar y la cocina por fin suena como una casa, no como una alarma.');
+      if (session.has('mate-warm')) unlock('kettle-low', 'Bajas el fuego. La pava deja de temblar. Falta cerrar el ritual donde empezó: en el mate.');
       else say('El fuego azul esta demasiado vivo. Capaz el mate te diga por que nadie lo apago.');
       return;
     }
@@ -304,8 +325,16 @@ export default function Experience() {
         say('La caja no cede. La etiqueta dice: abrir cuando vuelva el partido.');
         return;
       }
+      if (!session.has('elvira-place')) {
+        say('La caja tiene una cinta, pero no una testigo. Volvé al living: después del partido, Elvira todavía tiene algo que señalar.');
+        return;
+      }
       if (!session.has('family-photos')) {
         say('La caja se abre un poco, pero las fotos de la cocina todavia no te dieron el patron.');
+        return;
+      }
+      if (!session.has('table-set')) {
+        say('La caja golpea contra la madera, cerrada. No alcanza con mirar el pasado: en la cocina todavía falta poner la mesa.');
         return;
       }
       return unlock('cassette', 'Abres la caja. Hay un casete: FINAL 86 - CASA DE MAMA. Adentro suena una frase cortada: Beto, ahora vos tambien.');
@@ -322,7 +351,7 @@ export default function Experience() {
     }
 
     if (id === 'letter') {
-      const canOpenLetter = ['radio-tuned', 'tv-86', 'family-photos', 'cassette'].every(clueId => session.has(clueId));
+      const canOpenLetter = ['radio-tuned', 'tv-86', 'elvira-place', 'family-photos', 'table-set', 'cassette'].every(clueId => session.has(clueId));
       if (!canOpenLetter) {
         say(`La carta se resiste. Falta una pieza central: ${currentHint || 'la caja del cuarto'}`);
         return;
@@ -460,6 +489,16 @@ export default function Experience() {
               ))}
             </ol>
             <meter min={0} max={coreClues.length} value={coreProgress} aria-label="progreso del caso principal" />
+            <div className={styles.cast} aria-label="personajes reconstruidos">
+              {cast.map(person => {
+                const awake = person.when.every(id => Boolean(visits[id]));
+                return (
+                  <span key={person.id} data-awake={awake} title={awake ? person.role : 'todavía borroso'}>
+                    {person.name}
+                  </span>
+                );
+              })}
+            </div>
           </aside>
           <div className={styles.reward} data-visible={Boolean(reward)} aria-live="polite">{reward}</div>
           {spots[scene].map(spot => (
