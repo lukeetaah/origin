@@ -70,7 +70,10 @@ export class AudioEngine {
   }
 
   private speakWithLocalSouthAmericanVoice(text: string) {
-    if (!('speechSynthesis' in window)) return;
+    if (!('speechSynthesis' in window)) {
+      this.playNarratorMurmur(text);
+      return;
+    }
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
@@ -79,7 +82,10 @@ export class AudioEngine {
     const voice = voices.find(v => allowedLocales.includes(v.lang.toLowerCase()) && maleHints.some(hint => v.name.toLowerCase().includes(hint))) ||
       voices.find(v => allowedLocales.includes(v.lang.toLowerCase()));
 
-    if (!voice) return;
+    if (!voice) {
+      this.playNarratorMurmur(text);
+      return;
+    }
 
     utterance.voice = voice;
     utterance.lang = voice.lang;
@@ -87,6 +93,43 @@ export class AudioEngine {
     utterance.pitch = 0.82;
     utterance.volume = 0.9;
     synth.speak(utterance);
+  }
+
+  private playNarratorMurmur(text: string) {
+    if (!this.ctx || !this.master) return;
+    const syllables = Math.min(22, Math.max(6, Math.floor(text.length / 18)));
+    const base = 92;
+
+    for (let i = 0; i < syllables; i++) {
+      const start = this.ctx.currentTime + i * 0.105;
+      const osc = this.ctx.createOscillator();
+      const buzz = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'sawtooth';
+      buzz.type = 'triangle';
+      osc.frequency.setValueAtTime(base + Math.sin(i * 1.7) * 14, start);
+      buzz.frequency.setValueAtTime(base * 0.5 + Math.cos(i) * 6, start);
+      filter.type = 'bandpass';
+      filter.frequency.value = 520;
+      filter.Q.value = 1.8;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.035, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.095);
+
+      osc.connect(filter);
+      buzz.connect(filter);
+      filter.connect(gain).connect(this.master);
+      osc.start(start);
+      buzz.start(start);
+      osc.stop(start + 0.11);
+      buzz.stop(start + 0.11);
+      this.activeNodes.add(osc);
+      this.activeNodes.add(buzz);
+      osc.onended = () => this.activeNodes.delete(osc);
+      buzz.onended = () => this.activeNodes.delete(buzz);
+    }
   }
 
   private initRoomTone() {

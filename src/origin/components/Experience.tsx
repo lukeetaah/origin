@@ -18,36 +18,52 @@ type Hotspot = {
   draggable?: boolean;
 };
 
+type Clue = {
+  id: string;
+  label: string;
+  hint: string;
+};
+
 const spots: Record<Scene, Hotspot[]> = {
   hallway: [
     { id: 'lamp', label: 'aplique del pasillo', x: 68, y: 18, w: 13, h: 16 },
-    { id: 'photo', label: 'foto de la abuela Elvira', x: 4, y: 52, w: 21, h: 20, holdable: true },
+    { id: 'photo', label: 'foto de Elvira: mantener', x: 4, y: 52, w: 21, h: 20, holdable: true },
     { id: 'door-living', label: 'puerta al living', x: 10, y: 14, w: 24, h: 52 },
     { id: 'door-kitchen', label: 'puerta a la cocina', x: 60, y: 33, w: 14, h: 42 },
-    { id: 'door-bedroom', label: 'puerta al cuarto de los nietos', x: 87, y: 8, w: 13, h: 84 },
+    { id: 'door-bedroom', label: 'puerta al cuarto', x: 87, y: 8, w: 13, h: 84 },
     { id: 'exit', label: 'puerta de calle', x: 50, y: 37, w: 16, h: 31 },
   ],
   living: [
     { id: 'television', label: 'televisor: final del 86', x: 55, y: 34, w: 21, h: 27 },
-    { id: 'chair', label: 'sillon de la abuela', x: 4, y: 43, w: 40, h: 39 },
-    { id: 'radio', label: 'radio Spica: arrastra la perilla', x: 78, y: 39, w: 19, h: 17, draggable: true },
-    { id: 'living-window', label: 'ventana a Buenos Aires', x: 10, y: 8, w: 40, h: 32 },
+    { id: 'chair', label: 'sillon de Elvira', x: 4, y: 43, w: 40, h: 39 },
+    { id: 'radio', label: 'radio Spica: arrastrar', x: 78, y: 39, w: 19, h: 17, draggable: true },
+    { id: 'living-window', label: 'ventana a Almagro', x: 10, y: 8, w: 40, h: 32 },
   ],
   kitchen: [
-    { id: 'tap', label: 'canilla que gotea', x: 38, y: 40, w: 12, h: 10, holdable: true },
-    { id: 'mate', label: 'mate de Elvira', x: 19, y: 62, w: 13, h: 16, holdable: true },
+    { id: 'tap', label: 'canilla: mantener', x: 38, y: 40, w: 12, h: 10, holdable: true },
+    { id: 'mate', label: 'mate de Elvira: mantener', x: 19, y: 62, w: 13, h: 16, holdable: true },
     { id: 'fridge', label: 'heladera Siam', x: 78, y: 28, w: 19, h: 58 },
     { id: 'kettle', label: 'pava y hornalla', x: 52, y: 42, w: 16, h: 15 },
     { id: 'family-photos', label: 'fotos familiares', x: 3, y: 7, w: 19, h: 22 },
   ],
   bedroom: [
-    { id: 'letter', label: 'sobre de Malena: mantenelo', x: 57, y: 72, w: 11, h: 7, holdable: true },
+    { id: 'letter', label: 'sobre de Malena: mantener', x: 57, y: 72, w: 11, h: 7, holdable: true },
     { id: 'bedroom-window', label: 'ventana al patio', x: 90, y: 16, w: 10, h: 43 },
-    { id: 'mirror', label: 'espejo del ropero', x: 58, y: 20, w: 17, h: 40, holdable: true },
-    { id: 'box', label: 'caja de casetes y fotos', x: 54, y: 62, w: 27, h: 19 },
+    { id: 'mirror', label: 'espejo del ropero: mantener', x: 58, y: 20, w: 17, h: 40, holdable: true },
+    { id: 'box', label: 'caja de casetes', x: 54, y: 62, w: 27, h: 19 },
     { id: 'bed', label: 'cama de los primos', x: 3, y: 34, w: 44, h: 50 },
   ],
 };
+
+const clues: Clue[] = [
+  { id: 'photo-back', label: 'reverso', hint: 'El nombre raspado esta atras de la foto.' },
+  { id: 'radio-tuned', label: 'voz', hint: 'La Spica guarda la frecuencia de la tarde.' },
+  { id: 'tv-86', label: 'partido', hint: 'La tele necesita la radio para volver al 86.' },
+  { id: 'family-photos', label: 'fotos', hint: 'En la cocina falta siempre la misma persona.' },
+  { id: 'tap-silence', label: 'silencio', hint: 'La canilla tapa una frase de Elvira.' },
+  { id: 'mate-warm', label: 'mate', hint: 'El mate marca quien dejo la ronda.' },
+  { id: 'cassette', label: 'casete', hint: 'La caja del cuarto se abre cuando vuelve el partido.' },
+];
 
 const position = (spot: Hotspot): CSSProperties => ({
   left: `${spot.x}%`,
@@ -88,19 +104,34 @@ export default function Experience() {
     };
   }, []);
 
+  const visits = engine.current?.get().behavior.objectVisits || {};
+  const flags = Object.keys(visits).join(' ');
+  const unlockedClues = clues.filter(clue => Boolean(visits[clue.id]));
+  const nextClue = clues.find(clue => !visits[clue.id]);
+  const progress = Math.round((unlockedClues.length / clues.length) * 100);
+
   const has = useCallback((id: string) => Boolean(engine.current?.has(id)), []);
 
   const say = useCallback((text: string) => {
     setMessage(text);
     audio.current?.speak(text);
-    window.setTimeout(() => setMessage(current => current === text ? '' : current), 6400);
+    window.setTimeout(() => setMessage(current => current === text ? '' : current), 7000);
   }, []);
 
   const mark = useCallback((id: string, gesture: 'click' | 'hold' = 'click') => {
     engine.current?.act(id, gesture, scene);
-    audio.current?.setRoomToneIntensity(Math.min(6, Object.keys(engine.current?.get().behavior.objectVisits || {}).length));
+    audio.current?.setRoomToneIntensity(Math.min(7, Object.keys(engine.current?.get().behavior.objectVisits || {}).length));
     rerender(value => value + 1);
   }, [scene]);
+
+  const unlock = useCallback((id: string, text: string) => {
+    if (!engine.current?.has(id)) {
+      mark(id, 'hold');
+      audio.current?.playMemoryUnlock();
+    }
+    setSearchAwake(true);
+    say(text);
+  }, [mark, say]);
 
   const move = useCallback((next: Scene, text: string) => {
     engine.current?.visit(next);
@@ -119,139 +150,145 @@ export default function Experience() {
     else audio.current?.playHeartbeat(5000);
   }, []);
 
+  const readyForLetter = ['photo-back', 'radio-tuned', 'tv-86', 'family-photos', 'tap-silence', 'mate-warm', 'cassette']
+    .every(id => Boolean(visits[id]));
+
   const resolve = useCallback((id: string, gesture: 'click' | 'hold' | 'drag' = 'click') => {
     const session = engine.current;
     if (!session) return;
     audio.current?.unlock();
-    const memoryId = id === 'photo' && gesture === 'hold' ? 'photo-back' :
-      id === 'radio' && gesture === 'drag' ? 'radio-tuned' :
-      id === 'letter' && gesture === 'hold' ? 'letter-open' :
-      id === 'television' && session.has('radio-tuned') ? 'tv-86' :
-      id;
-    mark(memoryId, gesture === 'click' ? 'click' : 'hold');
 
-    if (id === 'door-living') return move('living', 'Entrás al living de la abuela Elvira. Afuera llueve sobre Almagro; adentro, la tele espera el gol.');
-    if (id === 'door-kitchen') return move('kitchen', 'Entrás a la cocina. Huele a pava vieja, repasador húmedo y domingo de familia.');
-    if (id === 'door-bedroom') return move('bedroom', 'Entrás al cuarto de los nietos. Malena dejó una caja abierta y una carta sin terminar.');
+    if (id === 'door-living') return move('living', 'Entras al living de Elvira. La casa baja la voz: aca se grito el mundial y despues nadie supo donde poner la camara.');
+    if (id === 'door-kitchen') return move('kitchen', 'Entras a la cocina. La hornalla esta viva, la canilla marca el pulso y el mate todavia parece de alguien.');
+    if (id === 'door-bedroom') return move('bedroom', 'Entras al cuarto de los primos. Malena dejo el lugar como una mesa de investigacion: casetes, fotos, una carta.');
     if (id === 'exit') {
       if (phase === 'decision') finish('leave');
-      else say(searchAwake ? 'La calle queda al fondo, pero todavía no sabés qué pasó con quien filmó el 86.' : 'La puerta da a Buenos Aires. La casa, por ahora, no te suelta.');
+      else {
+        audio.current?.playLocked();
+        say(readyForLetter ? 'Podes irte, pero todavia no abriste la carta. La puerta no quiere ser el final facil.' : `La calle esta ahi, pero la casa te retiene. Pista pendiente: ${nextClue?.hint || 'busca en el cuarto'}`);
+      }
       return;
     }
 
     if (id === 'photo') {
       if (gesture === 'hold') {
-        setSearchAwake(true);
         setPhase('recognition');
         session.setDramaticState('recognition');
         audio.current?.playPaperRustle();
-        say('Atrás de la foto dice: Elvira, Tito, Malena, Diego en la tele. Al que grabó no lo nombran. La firma está raspada.');
-      } else {
-        say(session.has('photo-back') ? 'Todos miran al lente. Nadie mira a la persona que sostiene la cámara.' : 'El marco está flojo. Mantenelo apretado para mirar el reverso.');
+        return unlock('photo-back', 'Das vuelta la foto. Atras dice: Elvira, Tito, Malena, Diego en la tele. Donde deberia decir Beto, el papel esta raspado.');
       }
+      say(session.has('photo-back') ? 'Ahora sabes que no falta una cara: falta quien estaba detras del lente.' : 'El marco esta flojo. Mantenelo apretado: las casas viejas hablan por atras.');
       return;
     }
 
     if (id === 'lamp') {
       audio.current?.playKnock();
-      say(session.has('photo-back') ? 'La luz encuentra una marca rectangular en la pared: acá colgaba una foto que alguien sacó.' : 'El aplique parpadea como si la casa respirara detrás del papel floreado.');
-      return;
-    }
-
-    if (id === 'television') {
-      audio.current?.playTVStatic(session.has('radio-tuned') ? 0.7 : 0.3, 1800);
-      if (session.has('radio-tuned')) {
-        setPhase('confrontation');
-        session.setDramaticState('confrontation');
-        say('La pantalla agarra señal: México 86. El living se llena de gritos, bocinazos y una voz que dice: dale, filmá a la abuela cuando termine el partido.');
-      } else {
-        say('La tele quiere mostrar el partido, pero la señal se desarma. Quizá la radio todavía tenga la frecuencia de ese día.');
-      }
-      return;
-    }
-
-    if (id === 'chair') {
-      say(session.has('tv-86') ? 'En el sillón, Elvira aplaudió el segundo gol y se tapó la cara cuando todos empezaron a llorar.' : 'El sillón guarda la forma de una abuela mirando la tele con el mate entre las manos.');
+      if (session.has('photo-back')) unlock('wall-mark', 'La luz revela un rectangulo mas claro en la pared. Alguien saco una foto de aca para que nadie preguntara por Beto.');
+      else say('El aplique parpadea sobre la foto, como si quisiera que la des vuelta.');
       return;
     }
 
     if (id === 'radio') {
       if (gesture === 'drag') {
+        setPhase('confrontation');
         audio.current?.playTVStatic(0.45, 1800);
-        setSearchAwake(true);
-        say('La Spica encuentra a Victor Hugo y después otra voz, casera: Beto, dejá de filmar el televisor y vení a la foto.');
-      } else {
-        audio.current?.playStaticZap();
-        say('La perilla raspa. Arrastrala: no está rota, está desintonizada.');
+        return unlock('radio-tuned', 'La Spica engancha una transmision: Victor Hugo se mezcla con una voz de familia. Beto, deja de filmar el televisor y veni a la foto.');
       }
+      audio.current?.playStaticZap();
+      say('La perilla no se clickea: se arrastra. Tiene una frecuencia escondida, como las radios de antes.');
+      return;
+    }
+
+    if (id === 'television') {
+      audio.current?.playTVStatic(session.has('radio-tuned') ? 0.7 : 0.3, 1800);
+      if (!session.has('radio-tuned')) {
+        say('La tele intenta mostrar Mexico 86, pero la senal se rompe. Primero sintoniza la radio.');
+        return;
+      }
+      session.setDramaticState('confrontation');
+      setPhase('confrontation');
+      return unlock('tv-86', 'La pantalla entra en foco: Argentina campeon. El living vibra, Elvira llora, Tito golpea la mesa, y Beto sigue filmando en vez de aparecer.');
+    }
+
+    if (id === 'chair') {
+      if (session.has('tv-86')) unlock('elvira-place', 'En el sillon aparece por un segundo Elvira: no fantasma, recuerdo. Senala la cocina, como si el mate completara la escena.');
+      else say('El sillon tiene la forma de Elvira: espalda chica, manta pesada, ojos clavados en la tele.');
       return;
     }
 
     if (id === 'living-window') {
-      say(session.has('tv-86') ? 'Por la ventana suben bocinazos de 1986. Buenos Aires festeja, pero Beto sigue detrás de cámara.' : 'La lluvia contra la persiana suena como una cinta rebobinando.');
+      say(session.has('tv-86') ? 'Afuera Buenos Aires toca bocina. Adentro, nadie nota que el que guarda el recuerdo se queda afuera.' : 'La lluvia sobre la persiana suena como cinta rebobinando.');
       return;
     }
 
     if (id === 'tap') {
       audio.current?.playDrip();
-      say(gesture === 'hold' ? 'Cortás la canilla y el silencio deja oír una cinta: Elvira dice que nadie se queda afuera de una foto familiar.' : 'La canilla gotea con paciencia de casa vieja. Mantenela si querés cortar el ruido.');
+      if (gesture === 'hold') return unlock('tap-silence', 'Cortas la canilla. En el silencio se oye a Elvira: en esta casa nadie se queda afuera de la mesa.');
+      say('El goteo tapa algo. Mantenelo hasta cortar el agua.');
       return;
     }
 
     if (id === 'mate') {
-      say(gesture === 'hold' ? 'El mate todavía tiene calor. Elvira lo dejó para llamar a Beto desde la cocina.' : 'La bombilla apunta hacia el living, como una brújula doméstica.');
+      if (gesture === 'hold') return unlock('mate-warm', 'El mate esta tibio. Elvira lo dejo en la cocina para ir a buscar a Beto al living.');
+      say('La bombilla apunta hacia la tele. No es decoracion: es una flecha domestica.');
       return;
     }
 
     if (id === 'fridge') {
       audio.current?.playHum(1400, 52);
-      say('La heladera vibra y se apaga. No cambia de habitación: sólo guarda imanes de Mar del Plata, una boleta de SEGBA y una foto arrancada.');
+      if (session.has('tap-silence')) unlock('fridge-photo', 'La heladera deja de vibrar. Bajo un iman de Mar del Plata aparece media foto: una mano sosteniendo una camara.');
+      else say('La heladera Siam vibra con imanes viejos. No es una puerta: es archivo familiar con motor.');
       return;
     }
 
     if (id === 'kettle') {
-      say(session.has('mate') ? 'La hornalla baja sola. La pava deja de temblar cuando el mate vuelve a su lugar.' : 'El fueguito azul insiste bajo la pava. Algo en esta cocina quedó esperando.');
+      if (session.has('mate-warm')) unlock('kettle-low', 'Bajas el fuego. La pava deja de temblar y la cocina por fin suena como una casa, no como una alarma.');
+      else say('El fuego azul esta demasiado vivo. Capaz el mate te diga por que nadie lo apago.');
       return;
     }
 
     if (id === 'family-photos') {
-      setSearchAwake(true);
-      say(session.has('photo-back') ? 'Mismo living, misma abuela, distintos años. Siempre falta Beto: no desapareció, quedó condenado a mirar por el lente.' : 'En las fotos están Elvira, Tito y Malena. Falta el hijo que siempre sacaba la foto.');
-      return;
+      return unlock('family-photos', session.has('photo-back') ?
+        'Ordenas las fotos por anio. En todas falta Beto. No desaparecio: era el que hacia existir a los demas.' :
+        'Elvira, Tito, Malena, primos, vecinos. Una familia entera mira al mismo punto, y ese punto no aparece.');
     }
 
     if (id === 'box') {
-      say(session.has('tv-86') ? 'En la caja hay un casete rotulado: Final 86, casa de mamá. Abajo, una Polaroid en blanco espera revelarse.' : 'La caja tiene casetes, fotos boca abajo y una etiqueta: no abrir hasta que vuelva la señal.');
-      return;
+      if (!session.has('tv-86')) {
+        say('La caja no cede. La etiqueta dice: abrir cuando vuelva el partido.');
+        return;
+      }
+      if (!session.has('family-photos')) {
+        say('La caja se abre un poco, pero las fotos de la cocina todavia no te dieron el patron.');
+        return;
+      }
+      return unlock('cassette', 'Abres la caja. Hay un casete: FINAL 86 - CASA DE MAMA. Adentro suena una frase cortada: Beto, ahora vos tambien.');
     }
 
     if (id === 'bed') {
-      say('La cama de los primos conserva un secreto simple: todos crecieron, menos la tarde que la familia siguió repitiendo.');
+      say(session.has('cassette') ? 'Bajo la colcha hay marcas de rodillas: Malena escucho el casete aca hasta gastarlo.' : 'La cama de los primos no da miedo. Da algo peor: la certeza de una tarde que no termino.');
       return;
     }
 
     if (id === 'bedroom-window') {
-      say('En el vidrio aparece el patio de una casa chorizo, ropa colgada y una cámara apoyada contra tu pecho.');
+      say('En el vidrio se refleja un patio de casa chorizo, ropa colgada, baldosas mojadas y una camara apoyada contra tu pecho.');
       return;
     }
 
     if (id === 'letter') {
       if (gesture !== 'hold') {
-        say('El sobre no tiene nombre. Mantenelo para abrirlo sin romperlo.');
+        say('El sobre de Malena no se abre con un click. Mantenelo, como quien lee algo que no quiere leer.');
         return;
       }
-      const ready = session.has('photo-back') && session.has('radio-tuned') && session.has('family-photos') && session.has('tv-86');
-      if (!ready) {
-        say(!session.has('photo-back') ? 'El papel está en blanco. El reverso de la foto del pasillo conserva el primer dato.' :
-          !session.has('radio-tuned') ? 'Sólo se lee: buscá la voz en la Spica del living.' :
-          !session.has('tv-86') ? 'Sólo se lee: cuando vuelva el partido, la casa va a recordar.' :
-          'La última línea señala las fotos de la cocina.');
+      if (!readyForLetter) {
+        say(`La carta se resiste. Falta una pieza: ${nextClue?.hint || 'la caja del cuarto'}`);
         return;
       }
+      mark('letter-open', 'hold');
       setPhase('decision');
       session.setDramaticState('decision');
       audio.current?.playHoldSilence();
-      say('Malena escribió: Beto, si seguís detrás de cámara, la casa te repite. Si querés aparecer, dejá de mirar y entrá al espejo.');
+      say('Malena escribio: Beto, si seguis filmando, la casa te repite. Si queres aparecer, deja la camara. El espejo ya esta listo.');
       return;
     }
 
@@ -260,9 +297,9 @@ export default function Experience() {
         finish('stay');
         return;
       }
-      say(phase === 'decision' ? 'Tu reflejo ya no esquiva la mirada. Mantené la mano sobre el espejo.' : 'El espejo muestra el cuarto, pero todavía no muestra a Beto.');
+      say(phase === 'decision' ? 'Tu reflejo ya no se esconde. Mantenelo: es la primera foto en la que podes entrar.' : 'El espejo todavia muestra el cuarto sin Beto. Primero reconstruye la tarde completa.');
     }
-  }, [finish, mark, move, phase, say, searchAwake]);
+  }, [finish, mark, move, nextClue?.hint, phase, readyForLetter, say, unlock]);
 
   const cancelGesture = () => {
     if (holdTimer.current) clearTimeout(holdTimer.current);
@@ -285,13 +322,13 @@ export default function Experience() {
         holdTriggered.current = true;
         setHeld(null);
         resolve(spot.id, 'hold');
-      }, 850);
+      }, 700);
     }
   };
 
   const pointerMove = (event: PointerEvent<HTMLButtonElement>, spot: Hotspot) => {
     if (!spot.draggable || dragTriggered.current) return;
-    if (Math.abs(event.clientX - dragStartX.current) > 30) {
+    if (Math.abs(event.clientX - dragStartX.current) > 24) {
       dragTriggered.current = true;
       setHeld(null);
       resolve(spot.id, 'drag');
@@ -307,11 +344,9 @@ export default function Experience() {
     dragTriggered.current = false;
   };
 
-  const visits = engine.current?.get().behavior.objectVisits || {};
-  const flags = Object.keys(visits).join(' ');
   const conclusion = ending === 'leave'
-    ? 'Saliste a Buenos Aires con la caja bajo el brazo. En la foto nueva seguís sin aparecer, pero ahora todos saben quién miraba desde atrás.'
-    : 'Apoyaste la cámara. La Polaroid tardó en revelarse y, por primera vez, Elvira, Malena, Tito y Beto quedaron dentro de la misma imagen.';
+    ? 'Saliste a Buenos Aires con la caja bajo el brazo. Beto no aparece en la foto, pero ya no es ausencia: es autor.'
+    : 'Apoyaste la camara. La Polaroid tardo en revelarse y, por primera vez, Elvira, Tito, Malena y Beto quedaron dentro de la misma imagen.';
 
   if (!started) {
     return (
@@ -320,7 +355,7 @@ export default function Experience() {
         onClick={() => {
           setStarted(true);
           audio.current?.unlock();
-          say('Buenos Aires, casa de la abuela Elvira. Hay alguien que nunca aparece en las fotos. Empezá por el retrato del pasillo.');
+          say('Buenos Aires, casa de la abuela Elvira. Hay alguien que nunca aparece en las fotos. Empeza por el retrato del pasillo.');
         }}
       >
         <span>ORIGIN</span>
@@ -353,6 +388,16 @@ export default function Experience() {
         >
           <div className={styles.darkness} />
           <div className={styles.memoryLayer} aria-hidden="true" />
+          <aside className={styles.caseboard} aria-label="pistas encontradas">
+            <p>{progress}%</p>
+            <ol>
+              {clues.map(clue => (
+                <li key={clue.id} data-found={Boolean(visits[clue.id])}>
+                  {clue.label}
+                </li>
+              ))}
+            </ol>
+          </aside>
           {spots[scene].map(spot => (
             <button
               key={spot.id}
@@ -377,19 +422,19 @@ export default function Experience() {
             <button
               className={styles.back}
               aria-label="volver al pasillo"
-              onClick={() => move('hallway', phase === 'decision' ? 'Volvés al pasillo. La puerta de calle y el espejo ya significan cosas distintas.' : 'Volvés al pasillo.')}
+              onClick={() => move('hallway', phase === 'decision' ? 'Volves al pasillo. La calle y el espejo ya son dos finales distintos.' : 'Volves al pasillo.')}
             >
-              ← pasillo
+              &larr; pasillo
             </button>
           )}
           <div className={styles.caption} aria-live="polite">{message}</div>
           {searchAwake && phase !== 'decision' && (
-            <p className={styles.question}>¿Quién fue Beto cuando todos miraban a cámara?</p>
+            <p className={styles.question}>{nextClue?.hint || 'La carta de Malena ya puede abrirse.'}</p>
           )}
           <p className={styles.sceneName}>{scene === 'hallway' ? 'pasillo' : scene === 'living' ? 'living' : scene === 'kitchen' ? 'cocina' : 'cuarto'}</p>
           {debug && (
             <output className={styles.debug}>
-              {JSON.stringify({ phase, flags, behavior: engine.current?.get().behavior, readings: engine.current?.get().readings.slice(-3) }, null, 1)}
+              {JSON.stringify({ phase, flags, progress, behavior: engine.current?.get().behavior, readings: engine.current?.get().readings.slice(-3) }, null, 1)}
             </output>
           )}
         </div>
