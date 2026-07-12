@@ -8,10 +8,12 @@ import { SessionEngine } from '../engine/memory';
 import { Region, scenes, styleForRegion } from '../engine/scenes';
 import { DramaticState, Scene } from '../engine/types';
 import { canClose, endingFor } from '../engine/progression';
+import { directBeat, pressure } from '../engine/director';
 import Notebook, { NotebookTab } from './Notebook';
 import effects from '../styles/effects.module.css';
 import styles from '../styles/experience.module.css';
 import tv from '../styles/tv.module.css';
+import director from '../styles/director.module.css';
 
 type ActivePress = Parameters<typeof createInputHandlers>[0];
 const discoveryMap: Record<string,string[]> = {'photo-back':['photo-back'],'wall-mark':['door-mark'],'radio-tuned':['radio-a'],'tv-86':['tv-memory'],'elvira-place':['chair-mark'],'family-photos':['recipe'],'tap-silence':['radio-b'],'mate-warm':['mate-seat'],'kettle-low':['recipe-date'],'table-set':['table-set'],'fridge-photo':['fridge-reflection','fridge-tub'],'cassette':['tapes','tape-wear'],'letter-open':['letter','child-voice']};
@@ -105,9 +107,15 @@ export default function Experience() {
       mark(id, gesture);
       engine.current?.discover(...(discoveryMap[id] || [id]));
       audio.current?.playMemoryUnlock();
+      const state=engine.current?.get();
+      const beat=state&&directBeat(state,scene);
+      if(beat&&!state.worldChanges.includes(beat.change)){
+        engine.current?.change(beat.change);
+        window.setTimeout(()=>{say(beat.text,false);if(beat.tone==='fracture')audio.current?.playHoldSilence();else if(beat.tone==='comic')audio.current?.playWoodTap();},2300);
+      }
     }
     say(text);
-  }, [mark, say]);
+  }, [mark, say, scene]);
 
   const move = useCallback((next: Scene) => {
     setScene(next);
@@ -278,7 +286,7 @@ export default function Experience() {
         onClick={() => {
           setStarted(true);
           audio.current?.unlock();
-          say('Volvés a la casa de Elvira y Beto antes de que la vacíen. Malena dejó una nota: “buscá la cinta de la final”. La foto del pasillo está torcida.');
+          say('Elvira murió y mañana vacían la casa. Volvés a aquella tarde de 1986 buscando una cinta, aunque en realidad querés saber por qué Beto se fue. La foto del pasillo está torcida.');
         }}
       >
         <span>ORIGIN</span>
@@ -303,10 +311,12 @@ export default function Experience() {
       <div className={styles.room}>
         <div
           ref={artRef}
-          className={styles.art}
+          className={`${styles.art} ${director.stage}`}
           data-scene={scene}
           data-flags={flags}
           data-reading={reading}
+          data-pressure={engine.current?pressure(engine.current.get()):0}
+          data-changes={engine.current?.get().worldChanges.join(' ')}
           onPointerMove={event => updatePointer(event.clientX, event.clientY)}
           style={{
             backgroundImage: `url(${current.image})`,
