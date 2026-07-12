@@ -43,7 +43,7 @@ export const scenes: Record<Scene, SceneDefinition> = {
     regions: [
       { id: 'exit-hallway', label: 'pasillo', kind: 'exit', to: 'hallway', rect: { x: 0, y: 0, w: 95, h: 1000 } },
       { id: 'living-window', label: 'ventana con persiana', kind: 'tap', rect: { x: 100, y: 80, w: 400, h: 320 } },
-      { id: 'chair', label: 'sillón de Elvira', kind: 'tap', rect: { x: 40, y: 430, w: 400, h: 390 } },
+      { id: 'chair', label: 'sillón de Elvira', kind: 'hold', rect: { x: 40, y: 430, w: 400, h: 390 } },
       { id: 'television', label: 'televisor', kind: 'tap', rect: { x: 550, y: 340, w: 210, h: 270 } },
       { id: 'radio', label: 'radio Spica', kind: 'drag', rect: { x: 780, y: 390, w: 190, h: 170 } },
     ],
