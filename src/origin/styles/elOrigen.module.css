@@ -331,6 +331,12 @@
   letter-spacing: -.02em;
 }
 
+.secondaryObjective {
+  margin: 0;
+  font: 700 .78rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color: rgba(25, 16, 6, .74);
+}
+
 .caseNote ol {
   margin: 0;
   padding-left: 1.2rem;
@@ -344,6 +350,30 @@
 .doneObjective {
   opacity: .58;
   text-decoration: line-through;
+}
+
+.notePulse {
+  position: fixed;
+  left: clamp(.75rem, 2.4vw, 1.6rem);
+  top: clamp(8rem, 23vh, 11rem);
+  z-index: 89;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: .65rem .85rem;
+  border-left: 2px solid rgba(180, 230, 202, .72);
+  background: rgba(6, 12, 8, .72);
+  color: #f4ecd2;
+  box-shadow: 0 .8rem 2.4rem rgba(0, 0, 0, .28);
+  font-size: .9rem;
+  line-height: 1.35;
+}
+
+.notePulse span {
+  display: block;
+  margin-bottom: .2rem;
+  font: 700 .62rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: #b9d8c2;
 }
 
 .tvSignal {
@@ -454,6 +484,61 @@
   color: rgba(22, 16, 10, .74);
 }
 
+.notebookSummary {
+  margin: .2rem 0 .75rem;
+  padding: .75rem .85rem;
+  border: 1px solid rgba(24, 67, 96, .28);
+  background: rgba(255, 248, 211, .45);
+  font-size: 1.1rem;
+  line-height: 1.28;
+}
+
+.evidenceGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+  margin-top: 1rem;
+}
+
+.evidenceCard {
+  min-height: 5.2rem;
+  padding: .7rem;
+  border: 1px solid rgba(55, 38, 16, .24);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, .26), transparent),
+    rgba(255, 246, 202, .38);
+  transform: rotate(var(--tilt, -.4deg));
+}
+
+.evidenceCard:nth-child(2n) {
+  --tilt: .45deg;
+}
+
+.evidenceCard span {
+  display: block;
+  margin-bottom: .45rem;
+  font: 700 .64rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(22, 16, 10, .62);
+}
+
+.evidenceCard p {
+  margin: 0;
+  line-height: 1.24;
+}
+
+.archiveDetails {
+  margin-top: 1rem;
+}
+
+.archiveDetails summary {
+  cursor: pointer;
+  font: 700 .76rem/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
 .paperSection {
   margin-top: 1rem;
   padding-top: .8rem;
@@ -537,6 +622,30 @@
   border: 1px dashed rgba(140, 255, 180, .68);
   background: rgba(140, 255, 180, .08);
   color: #baffd0;
+}
+
+.debugLayer i[data-active='false'] {
+  border-color: rgba(255, 204, 92, .68);
+  background: rgba(255, 204, 92, .08);
+  color: #ffe09b;
+}
+
+.debugLayer i[data-warning='true'] {
+  border-color: rgba(255, 90, 90, .9);
+  background: rgba(255, 60, 60, .18);
+  color: #ffd1d1;
+}
+
+.debugLayer i b,
+.debugLayer i small {
+  display: block;
+  margin-top: .15rem;
+  background: rgba(0, 0, 0, .62);
+}
+
+.debugLayer i small {
+  font-size: .58rem;
+  font-style: normal;
 }
 
 .proceduralScene {
@@ -651,6 +760,12 @@
 
   .coverCard {
     min-height: 20rem;
+  }
+
+  .caseNote,
+  .notePulse {
+    width: min(18rem, calc(100vw - 1.5rem));
+    font-size: .85rem;
   }
 
   .hotspot::before {

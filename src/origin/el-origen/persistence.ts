@@ -1,5 +1,5 @@
 import { applyAction, createMemory, freshGame, recoverFromCorruptSave } from './game';
-import { CarryItem, GameState, OLD_SAVE_KEYS, OriginMemory, SAVE_KEY, SAVE_VERSION, SceneId, StoredGame } from './types';
+import { CarryItem, DirectorState, GameState, OLD_SAVE_KEYS, OriginMemory, SAVE_KEY, SAVE_VERSION, SceneId, StoredGame } from './types';
 
 const scenes = new Set<SceneId>(['door', 'hallway', 'living', 'kitchen', 'bedroom', 'service', 'hidden', 'ending']);
 
@@ -67,15 +67,32 @@ function normalizeStored(value: unknown): StoredGame | null {
     notebook: Array.isArray(state.notebook) ? state.notebook : [],
     actions: Array.isArray(state.actions) ? state.actions : [],
     route: Array.isArray(state.route) ? state.route.filter((scene) => scenes.has(scene)) : ['door'],
+    director: normalizeDirector(state.director),
     carrying,
     ending: state.ending ?? null,
-    notice: typeof state.notice === 'string' ? state.notice : 'La familia pidió un favor sencillo: entrar, juntar papeles y dejar lista la tasación.',
+    notice: typeof state.notice === 'string' ? state.notice : 'Hay que buscar una llave azul.',
     started: Boolean(state.started),
   };
 
   if (safe.scene === 'ending' && !safe.ending) return null;
   if (safe.scene !== 'ending' && safe.ending) return { version: SAVE_VERSION, state: applyAction(safe, 'startAgain') };
   return { version: SAVE_VERSION, state: safe };
+}
+
+function normalizeDirector(value: unknown): DirectorState {
+  const base = freshGame().director;
+  if (!value || typeof value !== 'object') return base;
+  const director = value as Partial<DirectorState>;
+  return {
+    sceneVisits: director.sceneVisits && typeof director.sceneVisits === 'object' ? director.sceneVisits : base.sceneVisits,
+    routeCounts: director.routeCounts && typeof director.routeCounts === 'object' ? director.routeCounts : {},
+    ignoredItems: Array.isArray(director.ignoredItems) ? director.ignoredItems.filter((item): item is string => typeof item === 'string') : [],
+    heldActionsAbandoned: typeof director.heldActionsAbandoned === 'number' ? director.heldActionsAbandoned : 0,
+    cues: Array.isArray(director.cues) ? director.cues.filter((item): item is string => typeof item === 'string').slice(-5) : [],
+    hiddenWhileActive: typeof director.hiddenWhileActive === 'number' ? director.hiddenWhileActive : 0,
+    tensionEvents: Array.isArray(director.tensionEvents) ? director.tensionEvents.filter((item): item is string => typeof item === 'string') : [],
+    lastTensionAction: typeof director.lastTensionAction === 'number' ? director.lastTensionAction : -99,
+  };
 }
 
 function normalizeMemory(value: unknown): OriginMemory {

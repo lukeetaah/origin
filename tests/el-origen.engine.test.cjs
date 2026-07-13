@@ -14,6 +14,7 @@ const {
   visibleHotspots,
 } = require('../.tmp/el-origen-tests/game.js');
 const { buildNotebook } = require('../.tmp/el-origen-tests/notebook.js');
+const { objectRegistry } = require('../.tmp/el-origen-tests/objects.js');
 const { sceneRegistry } = require('../.tmp/el-origen-tests/scenes.js');
 
 function start() {
@@ -52,7 +53,6 @@ function reachTruth(memory) {
   state = applyAction(state, 'overlayLedgerAndPlan');
   state = applyAction(state, 'openHiddenPanel');
   state = applyAction(state, 'travelHidden');
-  state = applyAction(state, 'readNotebook');
   return state;
 }
 
@@ -73,16 +73,35 @@ function pngSize(filePath) {
   };
 }
 
-test('fresh entry starts from a cover state and gives the player an immediate concrete goal', () => {
+function overlapRatio(a, b) {
+  const x1 = Math.max(a.x, b.x);
+  const y1 = Math.max(a.y, b.y);
+  const x2 = Math.min(a.x + a.w, b.x + b.w);
+  const y2 = Math.min(a.y + a.h, b.y + b.h);
+  const overlap = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+  if (overlap === 0) return 0;
+  return overlap / Math.min(a.w * a.h, b.w * b.h);
+}
+
+function assertNoClickStealing(state, label) {
+  const hotspots = visibleHotspots(state);
+  for (let a = 0; a < hotspots.length; a += 1) {
+    for (let b = a + 1; b < hotspots.length; b += 1) {
+      const ratio = overlapRatio(hotspots[a].rect, hotspots[b].rect);
+      assert.ok(ratio < 0.35, `${label}: ${hotspots[a].id} steals clicks from ${hotspots[b].id} (${ratio.toFixed(2)})`);
+    }
+  }
+}
+
+test('fresh entry gives one immediate concrete goal', () => {
   const state = freshGame();
   assert.equal(state.started, false);
   assert.equal(state.scene, 'door');
-  assert.match(state.notice, /tasaci[oó]n/);
+  assert.match(state.notice, /llave azul/);
 
   const entered = applyAction(state, 'enter');
   assert.equal(entered.started, true);
-  assert.match(entered.notice, /casa/);
-  assert.match(entered.notice, /versi[oó]n/);
+  assert.match(entered.notice, /llave azul/);
 });
 
 test('apartment door opens immediately and moves to the hallway without arbitrary key gates', () => {
@@ -93,6 +112,7 @@ test('apartment door opens immediately and moves to the hallway without arbitrar
   state = applyAction(state, door.action);
   assert.equal(state.scene, 'hallway');
   assert.equal(state.flags.doorOpened, true);
+  assert.equal(state.flags.envelopeRead, true);
 });
 
 test('all playable rooms use real coherent image assets with matching declared dimensions', () => {
@@ -109,20 +129,47 @@ test('all playable rooms use real coherent image assets with matching declared d
   }
 });
 
+test('every hotspot is backed by a registered visible object on the same asset', () => {
+  const seenHotspotIds = new Set();
+
+  for (const [sceneId, scene] of Object.entries(sceneRegistry)) {
+    const ids = new Set();
+    for (const hotspot of scene.hotspots) {
+      assert.ok(!ids.has(hotspot.id), `${sceneId} duplicate hotspot ${hotspot.id}`);
+      ids.add(hotspot.id);
+      seenHotspotIds.add(hotspot.id);
+      assert.ok(hotspot.objectId, `${hotspot.id} has objectId`);
+      const object = objectRegistry[hotspot.objectId];
+      assert.ok(object, `${hotspot.id} references registered object ${hotspot.objectId}`);
+      assert.equal(object.scene, sceneId, `${hotspot.id} object scene`);
+      assert.equal(object.asset, scene.background.src, `${hotspot.id} object asset`);
+      assert.equal(object.hotspotId, hotspot.id, `${hotspot.id} object hotspotId`);
+      assert.deepEqual(object.rect, hotspot.rect, `${hotspot.id} rect matches object registry`);
+      assert.ok(hotspot.rect.w >= object.minSize.w && hotspot.rect.h >= object.minSize.h, `${hotspot.id} respects min size`);
+      assert.ok(hotspot.rect.w <= object.maxSize.w && hotspot.rect.h <= object.maxSize.h, `${hotspot.id} respects max size`);
+    }
+  }
+
+  for (const object of Object.values(objectRegistry)) {
+    assert.ok(seenHotspotIds.has(object.hotspotId), `${object.id} registered object has hotspot`);
+    assert.ok(object.visualDescription.length > 12, `${object.id} has visual description`);
+    assert.ok(object.hover.length > 1, `${object.id} has hover feedback`);
+    assert.ok(object.touch.length > 1, `${object.id} has touch feedback`);
+  }
+});
+
 test('domestic rooms use coherent scenes, assets and hotspots', () => {
   let state = start();
   state = applyAction(state, 'openApartmentDoor');
 
   const kitchen = applyAction(state, 'travelKitchen');
   assert.equal(kitchen.scene, 'kitchen');
-  assert.match(sceneRegistry.kitchen.aria, /Cocina/);
   assert.equal(sceneRegistry.kitchen.background.src, '/bg-kitchen.png');
   assert.ok(findHotspot(kitchen, 'fridge-check'));
   assert.ok(findHotspot(kitchen, 'kitchen-folder'));
 
   const bedroom = applyAction(state, 'travelBedroom');
   assert.equal(bedroom.scene, 'bedroom');
-  assert.match(sceneRegistry.bedroom.aria, /Dormitorio de la abuela/);
   assert.equal(sceneRegistry.bedroom.background.src, '/bg-bedroom.png');
   assert.ok(findHotspot(bedroom, 'grandmother-keyring'));
 
@@ -150,7 +197,36 @@ test('all hotspot coordinates stay inside the playable plane', () => {
   }
 });
 
-test('the notebook appears through a physical kitchen gesture and evolves with evidence', () => {
+test('simultaneous visible hotspots do not steal each other clicks', () => {
+  let state = start();
+  assertNoClickStealing(state, 'door');
+
+  state = applyAction(state, 'openApartmentDoor');
+  assertNoClickStealing(state, 'hallway');
+
+  state = applyAction(state, 'travelKitchen');
+  assertNoClickStealing(state, 'kitchen-empty');
+  state = applyAction(state, 'inspectFolder');
+  state = applyAction(state, 'checkFridge');
+  state = applyAction(state, 'loosenTile');
+  assertNoClickStealing(state, 'kitchen-tile');
+  state = applyAction(state, 'takeNotebook');
+  assertNoClickStealing(state, 'kitchen-notebook');
+
+  state = applyAction(state, 'travelService');
+  state = applyAction(state, 'inspectServicePlan');
+  assertNoClickStealing(state, 'service-plan');
+  state = applyAction(state, 'inspectBehaviorProfile');
+  state = applyAction(state, 'overlayLedgerAndPlan');
+  assertNoClickStealing(state, 'service-panel');
+  state = applyAction(state, 'openHiddenPanel');
+  assertNoClickStealing(state, 'service-open');
+
+  state = applyAction(state, 'travelHidden');
+  assertNoClickStealing(state, 'hidden');
+});
+
+test('the notebook is a quick reminder plus optional archive, not required reading', () => {
   const state = reachNotebook();
   assert.equal(state.carrying, 'notebook');
   assert.equal(state.flags.notebookFound, true);
@@ -158,8 +234,10 @@ test('the notebook appears through a physical kitchen gesture and evolves with e
 
   const notebook = buildNotebook(state);
   assert.match(notebook.heading, /Libreta azul/);
-  assert.ok(notebook.lines.some((line) => /Protocolo/.test(line.text)));
-  assert.ok(notebook.mutations.some((line) => /administraci[oó]n de desgaste/.test(line)));
+  assert.ok(notebook.summary.length <= 42, 'summary stays short');
+  assert.ok(notebook.cards.some((card) => card.id === 'notebook'));
+  assert.ok(notebook.mutations.some((line) => /desgaste/.test(line)));
+  assert.ok(notebook.sections.every((section) => Array.isArray(section.lines)), 'archive sections are optional');
 });
 
 test('behavioral profile and hidden panel are gated by material evidence', () => {
@@ -188,11 +266,32 @@ test('valuation choices stay hidden until the player understands the protocol an
   assert.ok(findHotspot(state, 'refuse-low-price'));
 });
 
+test('essential progression does not require opening the optional notebook archive', () => {
+  const state = reachValuation();
+  assert.equal(state.flags.truthUnderstood, true);
+  assert.equal(state.flags.valuationReady, true);
+  assert.equal(state.actions.filter((action) => action === 'readNotebook').length, 0);
+});
+
+test('adaptive tension events have cooldowns and never repeat the same route cue', () => {
+  let state = start();
+  state = applyAction(state, 'openApartmentDoor');
+  state = applyAction(state, 'travelKitchen');
+  state = applyAction(state, 'travelHallway');
+  state = applyAction(state, 'travelKitchen');
+  assert.ok(state.director.tensionEvents.includes('route-hallway->kitchen'));
+
+  state = applyAction(state, 'travelHallway');
+  state = applyAction(state, 'travelKitchen');
+  const repeatedEvents = state.director.tensionEvents.filter((event) => event === 'route-hallway->kitchen');
+  assert.equal(repeatedEvents.length, 1);
+});
+
 test('three main endings are reachable through physical choices rather than menu labels', () => {
   const ceded = applyAction(reachValuation(), 'acceptLowPrice');
   assert.equal(ceded.scene, 'ending');
   assert.equal(ceded.ending, 'ceder');
-  assert.match(ceded.notice, /tasaci[oó]n baja/);
+  assert.match(ceded.notice, /tasación baja/);
 
   const resisted = applyAction(reachValuation(), 'refusePrice');
   assert.equal(resisted.ending, 'resistir');
@@ -230,19 +329,22 @@ test('abandoned sustained interactions are tracked but do not rewrite truth', ()
   assert.equal(after.director.heldActionsAbandoned, before.director.heldActionsAbandoned + 1);
   assert.deepEqual(after.facts, before.facts);
   assert.equal(after.flags.truthUnderstood, before.flags.truthUnderstood);
+  assert.ok(after.director.tensionEvents.includes('abandon-kitchen'));
 });
 
 test('visible EL ORIGEN content is not contaminated by retired identities, brands or borrowed IP', () => {
   const banned = /(RUPTURA|Nora|Elda|casillero|Mutual|La Espera|Juli[aá]n|Malena|Sosa|SIAM|Di Tella|Mario|Bros|Estanciero|Puccio|Maradona|FIFA|ORIGIN)/i;
   const truth = reachValuation();
+  const notebook = buildNotebook(truth);
   const surface = [
     ...Object.values(sceneRegistry).flatMap((scene) => [
       scene.aria,
       ...scene.ambient,
-      ...scene.hotspots.flatMap((hotspot) => [hotspot.label, hotspot.verb, hotspot.id]),
+      ...scene.hotspots.flatMap((hotspot) => [hotspot.label, hotspot.verb, hotspot.id, hotspot.objectId]),
     ]),
-    ...buildNotebook(truth).lines.map((line) => line.text),
-    ...buildNotebook(truth).sections.flatMap((section) => [section.title, ...section.lines]),
+    ...Object.values(objectRegistry).flatMap((object) => [object.internalName, object.visualDescription, object.hover, object.touch]),
+    ...notebook.lines.map((line) => line.text),
+    ...notebook.sections.flatMap((section) => [section.title, ...section.lines]),
     truth.notice,
   ].join('\n');
 

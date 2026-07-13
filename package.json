@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint src tests",
     "typecheck": "tsc --noEmit",
-    "test": "tsc src/origin/el-origen/types.ts src/origin/el-origen/scenes.ts src/origin/el-origen/notebook.ts src/origin/el-origen/game.ts src/origin/el-origen/director.ts --target ES2022 --lib ES2022,DOM --module commonjs --moduleResolution node --outDir .tmp/el-origen-tests --skipLibCheck && node --test tests/el-origen.engine.test.cjs"
+    "test": "tsc src/origin/el-origen/types.ts src/origin/el-origen/objects.ts src/origin/el-origen/scenes.ts src/origin/el-origen/notebook.ts src/origin/el-origen/game.ts src/origin/el-origen/director.ts src/origin/el-origen/persistence.ts --target ES2022 --lib ES2022,DOM --module commonjs --moduleResolution node --outDir .tmp/el-origen-tests --skipLibCheck && node --test tests/el-origen.engine.test.cjs"
   },
   "dependencies": {
     "next": "16.2.10",

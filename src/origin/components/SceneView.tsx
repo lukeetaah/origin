@@ -1,7 +1,8 @@
 'use client';
 
 import { PointerEvent, useRef, useState } from 'react';
-import { sceneRegistry } from '../el-origen/scenes';
+import { requirementsMet, sceneRegistry } from '../el-origen/scenes';
+import { getObjectRecord, sceneObjects } from '../el-origen/objects';
 import { GameState, Hotspot } from '../el-origen/types';
 import styles from '../styles/elOrigen.module.css';
 
@@ -62,6 +63,13 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
     ? { '--bg': `url(${scene.background.src})` }
     : { '--bg': 'none' };
   const ratio = scene.background.width / scene.background.height;
+  const debugHotspots = scene.hotspots.map((hotspot) => ({
+    hotspot,
+    object: getObjectRecord(hotspot.objectId),
+    active: hotspots.some((visible) => visible.id === hotspot.id),
+    gated: !requirementsMet(state, hotspot.visibleWhen ?? []),
+  }));
+  const sceneObjectWarnings = sceneObjects(scene.id).filter((object) => !scene.hotspots.some((hotspot) => hotspot.id === object.hotspotId));
 
   return (
     <section
@@ -82,7 +90,6 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
         style={{ aspectRatio: `${scene.background.width} / ${scene.background.height}` }}
       >
         <div className={styles.backdrop} />
-        {scene.background.kind === 'procedural' && <ProceduralSet kind={scene.background.style} />}
         <div className={styles.grain} aria-hidden="true" />
         <div className={styles.vignette} aria-hidden="true" />
         <div className={styles.flashlight} aria-hidden="true" />
@@ -93,6 +100,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
             className={`${styles.hotspot} ${styles[`layer_${hotspot.layer ?? 'mid'}`]}`}
             data-gesture={hotspot.gesture ?? 'tap'}
             data-hotspot={hotspot.id}
+            data-object-id={hotspot.objectId}
             key={hotspot.id}
             onClick={() => {
               if (!hotspot.holdMs) onHotspot(hotspot);
@@ -129,9 +137,15 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
 
         {debug && (
           <div className={styles.debugLayer} aria-hidden="true">
-            <p>{scene.id} · x {pointer.x.toFixed(1)} / y {pointer.y.toFixed(1)}</p>
-            {hotspots.map((hotspot) => (
+            <p>
+              {scene.id} · {scene.background.kind === 'image' ? scene.background.src : scene.background.style}
+              {' · '}x {pointer.x.toFixed(1)} / y {pointer.y.toFixed(1)}
+              {sceneObjectWarnings.length > 0 ? ` · WARN objetos sin hotspot: ${sceneObjectWarnings.map((object) => object.id).join(', ')}` : ''}
+            </p>
+            {debugHotspots.map(({ hotspot, object, active, gated }) => (
               <i
+                data-active={active ? 'true' : 'false'}
+                data-warning={object ? 'false' : 'true'}
                 key={`debug-${hotspot.id}`}
                 style={{
                   left: `${hotspot.rect.x}%`,
@@ -141,32 +155,15 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
                 }}
               >
                 {hotspot.id}
+                <b>{object?.internalName ?? 'SIN OBJETO'}</b>
+                <small>
+                  {active ? 'activo' : gated ? 'bloqueado' : 'oculto'} · {hotspot.rect.x}/{hotspot.rect.y}/{hotspot.rect.w}/{hotspot.rect.h}
+                </small>
               </i>
             ))}
           </div>
         )}
       </div>
     </section>
-  );
-}
-
-function ProceduralSet({ kind }: { kind: 'door' }) {
-  if (kind === 'door') return <DoorSet />;
-  return null;
-}
-
-function DoorSet() {
-  return (
-    <div className={`${styles.proceduralScene} ${styles.doorSet}`} aria-hidden="true">
-      <div className={styles.corridorWall} />
-      <div className={styles.apartmentDoor}>
-        <i />
-        <b />
-        <span />
-      </div>
-      <div className={styles.envelopeProp} />
-      <div className={styles.floorTiles} />
-      <div className={styles.elevatorGlow} />
-    </div>
   );
 }

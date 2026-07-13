@@ -36,7 +36,8 @@ export default function Experience() {
     setState(saved);
     setHasContinue(hasValidStoredGame() && saved.started && saved.scene !== 'ending');
     if (devDebugAllowed && typeof window !== 'undefined') {
-      setDebug(new URLSearchParams(window.location.search).get('debug') === '1');
+      const params = new URLSearchParams(window.location.search);
+      setDebug(params.get('debug') === '1' || params.get('debugHotspots') === '1');
     }
   }, []);
 
@@ -108,11 +109,10 @@ export default function Experience() {
       }
     }
 
-    const next = commit(applyAction(current, action));
+    commit(applyAction(current, action));
     if (action === 'enter' || action === 'continue') setCoverOpen(false);
     if (action === 'startAgain') setCoverOpen(true);
     playFor(hotspot, action);
-    if (next.flags.notebookFound && action === 'takeNotebook') setNotebookOpen(true);
   };
 
   const abandonHold = () => {
@@ -172,20 +172,23 @@ export default function Experience() {
       />
 
       <aside className={styles.caseNote} aria-label="orden de trabajo">
-        <p className={styles.paperKicker}>orden de trabajo</p>
-        <h2>Tasación pendiente</h2>
-        <ol>
-          {objectivesFor(state).map((objective) => (
-            <li className={objective.done ? styles.doneObjective : ''} key={objective.text}>{objective.text}</li>
-          ))}
-        </ol>
+        <p className={styles.paperKicker}>{state.scene}</p>
+        <h2>{objectiveFor(state).primary}</h2>
+        {objectiveFor(state).secondary && <p className={styles.secondaryObjective}>{objectiveFor(state).secondary}</p>}
       </aside>
+
+      {latestNotebookReminder(state) && (
+        <aside className={styles.notePulse} aria-label="apunte de libreta">
+          <span>libreta</span>
+          {latestNotebookReminder(state)}
+        </aside>
+      )}
 
       {state.scene === 'living' && state.flags.tv1986Seen && (
         <aside className={styles.tvSignal} aria-label="transmisión ficticia de 1986">
           <p>JUNIO · 1986</p>
           <strong>LA CASA JUEGA DE LOCAL</strong>
-          <span>avance: cocina → servicio → archivo · deuda acumulada: visible</span>
+          <span>avance: cocina → servicio → archivo · deuda visible</span>
         </aside>
       )}
 
@@ -229,12 +232,25 @@ export default function Experience() {
   );
 }
 
-function objectivesFor(state: GameState) {
-  return [
-    { text: 'Leer el sobre y entrar a la casa.', done: Boolean(state.flags.envelopeRead && state.flags.doorOpened) },
-    { text: 'Contrastar carpeta, heladera y llaves.', done: Boolean(state.flags.folderFound && state.flags.fridgeChecked && state.flags.keyringSeen) },
-    { text: 'Encontrar la libreta azul y cruzarla con el plano.', done: Boolean(state.flags.notebookFound && state.flags.planOverlayDone) },
-    { text: 'Descubrir quién mide tu conducta.', done: Boolean(state.flags.behaviorProfileSeen) },
-    { text: state.flags.valuationReady ? 'Decidir si firmar, rechazar o exponer.' : 'Volver al living y revisar la tasación.', done: Boolean(state.ending) },
-  ];
+function objectiveFor(state: GameState) {
+  if (!state.flags.envelopeRead) return { primary: 'Leé el sobre.', secondary: 'Está bajo la puerta.' };
+  if (!state.flags.doorOpened) return { primary: 'Entrá a la casa.', secondary: 'Buscá la llave azul.' };
+  if (!state.flags.folderFound && !state.flags.keyringSeen) return { primary: 'Buscá la llave azul.', secondary: 'Revisá el dormitorio.' };
+  if (!state.flags.folderFound) return { primary: 'Abrí una carpeta.', secondary: 'Cocina o dormitorio.' };
+  if (!state.flags.fridgeChecked) return { primary: 'Abrí la heladera.', secondary: 'No huele a abandono.' };
+  if (!state.flags.notebookFound) return { primary: 'Buscá detrás del azulejo.', secondary: 'La carpeta marcó una pared.' };
+  if (!state.flags.servicePlanSeen) return { primary: 'Encontrá el plano.', secondary: 'Seguí la humedad.' };
+  if (!state.flags.behaviorProfileSeen) return { primary: 'Mirá el punto rojo.', secondary: 'No estaba en el plano.' };
+  if (!state.flags.truthUnderstood) return { primary: 'Superponé libreta y plano.', secondary: 'No leas: alinealos.' };
+  if (!state.flags.hiddenPanelOpened) return { primary: 'Abrí el panel.', secondary: 'La pared ya cedió.' };
+  if (state.scene === 'service') return { primary: 'Entrá al hueco.', secondary: 'El panel ya no tapa nada.' };
+  if (!state.flags.valuationReady) return { primary: 'Volvé al living.', secondary: 'La carpeta cambió.' };
+  return { primary: 'Firmá o tachá.', secondary: 'Para exponer, volvé al archivo.' };
+}
+
+function latestNotebookReminder(state: GameState) {
+  if (!state.flags.notebookFound) return null;
+  const line = state.notebook.at(-1)?.text;
+  if (!line) return null;
+  return line.length > 72 ? `${line.slice(0, 69)}...` : line;
 }

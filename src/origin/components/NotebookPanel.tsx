@@ -17,13 +17,19 @@ export default function NotebookPanel({ state, onClose }: NotebookPanelProps) {
       <button className={styles.closePaper} onClick={onClose} type="button">cerrar</button>
       <p className={styles.paperKicker}>libreta azul</p>
       <h2>{notebook.heading}</h2>
+      <p className={styles.notebookSummary}>{notebook.summary}</p>
       <p className={styles.hand}>{notebook.hand}</p>
 
-      <section className={styles.paperSection}>
-        {notebook.lines.map((line) => (
-          <p className={line.struck ? styles.struckLine : ''} key={line.id}>{line.text}</p>
-        ))}
-      </section>
+      {notebook.cards.length > 0 && (
+        <section className={styles.evidenceGrid} aria-label="conexiones visuales">
+          {notebook.cards.map((card) => (
+            <article className={styles.evidenceCard} key={card.id}>
+              <span>{card.kicker}</span>
+              <p>{card.text}</p>
+            </article>
+          ))}
+        </section>
+      )}
 
       {notebook.mutations.length > 0 && (
         <section className={styles.paperSection}>
@@ -32,12 +38,21 @@ export default function NotebookPanel({ state, onClose }: NotebookPanelProps) {
         </section>
       )}
 
-      {notebook.sections.map((section) => (
-        <section className={styles.paperSection} key={section.kind}>
-          <h3>{section.title}</h3>
-          {section.lines.map((line) => <p key={line}>{line}</p>)}
+      <details className={styles.archiveDetails}>
+        <summary>archivo opcional</summary>
+        <section className={styles.paperSection}>
+          {notebook.lines.map((line) => (
+            <p className={line.struck ? styles.struckLine : ''} key={line.id}>{line.text}</p>
+          ))}
         </section>
-      ))}
+
+        {notebook.sections.map((section) => (
+          <section className={styles.paperSection} key={section.kind}>
+            <h3>{section.title}</h3>
+            {section.lines.map((line) => <p key={line}>{line}</p>)}
+          </section>
+        ))}
+      </details>
     </aside>
   );
 }

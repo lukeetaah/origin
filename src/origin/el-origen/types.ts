@@ -82,8 +82,12 @@ export type Rect = {
   h: number;
 };
 
+export type HotspotShape = 'rect' | 'circle' | 'door' | 'paper' | 'object';
+export type InteractiveObjectId = string;
+
 export type Hotspot = {
   id: string;
+  objectId: InteractiveObjectId;
   label: string;
   verb: string;
   rect: Rect;
@@ -105,6 +109,28 @@ export type SceneRecord = {
   aria: string;
   ambient: string[];
   hotspots: Hotspot[];
+};
+
+export type InteractiveObjectRecord = {
+  id: InteractiveObjectId;
+  hotspotId: string;
+  scene: Exclude<SceneId, 'ending'>;
+  internalName: string;
+  narrativeState: 'visible' | 'revealed' | 'state-dependent' | 'exit';
+  visualDescription: string;
+  asset: string;
+  rect: Rect;
+  shape: HotspotShape;
+  minSize: Rect;
+  maxSize: Rect;
+  action: ActionId;
+  hover: string;
+  touch: string;
+  alternateState?: string;
+  dependencies?: Requirement[];
+  sound?: SoundCue;
+  notebookEntry?: string;
+  required: boolean;
 };
 
 export type FactKind = 'tramite' | 'familia' | 'protocolo' | 'conducta' | 'tasacion' | 'anomalia' | 'consecuencia';
@@ -143,6 +169,8 @@ export type DirectorState = {
   heldActionsAbandoned: number;
   cues: string[];
   hiddenWhileActive: number;
+  tensionEvents: string[];
+  lastTensionAction: number;
 };
 
 export type GameState = {
