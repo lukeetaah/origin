@@ -1,12 +1,14 @@
 {
-  "name": "origin",
+  "name": "el-origen",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/prepare-sites-dist.mjs",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint src tests",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc src/origin/el-origen/types.ts src/origin/el-origen/scenes.ts src/origin/el-origen/notebook.ts src/origin/el-origen/game.ts src/origin/el-origen/director.ts --target ES2022 --lib ES2022,DOM --module commonjs --moduleResolution node --outDir .tmp/el-origen-tests --skipLibCheck && node --test tests/el-origen.engine.test.cjs"
   },
   "dependencies": {
     "next": "16.2.10",

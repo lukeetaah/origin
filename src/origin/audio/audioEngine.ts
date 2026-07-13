@@ -1,5 +1,5 @@
 // ==========================================
-// RUPTURA 2: Procedural Audio Engine (V3)
+// EL ORIGEN: local procedural audio
 // ==========================================
 
 export class AudioEngine {
@@ -36,6 +36,16 @@ export class AudioEngine {
     await this.loadBrowserVoices();
   }
 
+  setMasterVolume(value: number) {
+    if (!this.master) return;
+    const safe = Math.min(1, Math.max(0, value));
+    if (this.ctx) {
+      this.master.gain.setTargetAtTime(safe, this.ctx.currentTime, 0.08);
+    } else {
+      this.master.gain.value = safe;
+    }
+  }
+
   async speak(text: string) {
     const sequence = ++this.speechSequence;
     if (this.speechAudio) {
@@ -43,30 +53,7 @@ export class AudioEngine {
       this.speechAudio = null;
     }
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-
-    try {
-      const response = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok || sequence !== this.speechSequence) return this.speakWithLocalSouthAmericanVoice(text);
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      this.speechAudio = audio;
-      audio.volume = 0.92;
-      audio.onended = () => URL.revokeObjectURL(url);
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        this.speakWithLocalSouthAmericanVoice(text);
-      };
-      await audio.play();
-    } catch {
-      this.speakWithLocalSouthAmericanVoice(text);
-    }
+    if (sequence === this.speechSequence) this.speakWithLocalSouthAmericanVoice(text);
   }
 
   private speakWithLocalSouthAmericanVoice(text: string) {
@@ -390,6 +377,113 @@ export class AudioEngine {
     src.stop(this.ctx.currentTime + 0.1);
   }
 
+  playLocker() {
+    if (!this.ctx || !this.master || !this.noiseBuffer) return;
+    const t = this.ctx.currentTime;
+    const scrape = this.ctx.createBufferSource();
+    scrape.buffer = this.noiseBuffer;
+    const scrapeFilter = this.ctx.createBiquadFilter();
+    scrapeFilter.type = 'bandpass';
+    scrapeFilter.frequency.setValueAtTime(320, t);
+    scrapeFilter.frequency.exponentialRampToValueAtTime(120, t + 0.35);
+    scrapeFilter.Q.value = 7;
+    const scrapeGain = this.ctx.createGain();
+    scrapeGain.gain.setValueAtTime(0.001, t);
+    scrapeGain.gain.linearRampToValueAtTime(0.13, t + 0.025);
+    scrapeGain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+    scrape.connect(scrapeFilter).connect(scrapeGain).connect(this.master);
+    scrape.start(t);
+    scrape.stop(t + 0.45);
+
+    [0.03, 0.16].forEach((offset) => {
+      const clang = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      clang.type = 'triangle';
+      clang.frequency.setValueAtTime(148 + offset * 90, t + offset);
+      gain.gain.setValueAtTime(0.08, t + offset);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.18);
+      clang.connect(gain).connect(this.master!);
+      clang.start(t + offset);
+      clang.stop(t + offset + 0.2);
+    });
+  }
+
+  playIntercom() {
+    if (!this.ctx || !this.master || !this.noiseBuffer) return;
+    const t = this.ctx.currentTime;
+    const hum = this.ctx.createOscillator();
+    const buzz = this.ctx.createBufferSource();
+    buzz.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1100;
+    filter.Q.value = 0.8;
+    const gain = this.ctx.createGain();
+    hum.type = 'square';
+    hum.frequency.setValueAtTime(96, t);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.055, t + 0.04);
+    gain.gain.setValueAtTime(0.04, t + 0.22);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    hum.connect(gain);
+    buzz.connect(filter).connect(gain);
+    gain.connect(this.master);
+    hum.start(t);
+    buzz.start(t);
+    hum.stop(t + 0.6);
+    buzz.stop(t + 0.6);
+  }
+
+  playStamp() {
+    if (!this.ctx || !this.master || !this.noiseBuffer) return;
+    const t = this.ctx.currentTime;
+    const thud = this.ctx.createOscillator();
+    const paper = this.ctx.createBufferSource();
+    paper.buffer = this.noiseBuffer;
+    const paperFilter = this.ctx.createBiquadFilter();
+    paperFilter.type = 'highpass';
+    paperFilter.frequency.value = 1600;
+    const gain = this.ctx.createGain();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(92, t);
+    thud.frequency.exponentialRampToValueAtTime(38, t + 0.09);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    thud.connect(gain).connect(this.master);
+    paper.connect(paperFilter).connect(gain);
+    thud.start(t);
+    paper.start(t);
+    thud.stop(t + 0.16);
+    paper.stop(t + 0.16);
+  }
+
+  playCameraWhirr() {
+    if (!this.ctx || !this.master || !this.noiseBuffer) return;
+    const t = this.ctx.currentTime;
+    const motor = this.ctx.createOscillator();
+    const grain = this.ctx.createBufferSource();
+    grain.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(880, t);
+    filter.frequency.linearRampToValueAtTime(1320, t + 0.5);
+    filter.Q.value = 2.2;
+    const gain = this.ctx.createGain();
+    motor.type = 'sawtooth';
+    motor.frequency.setValueAtTime(68, t);
+    motor.frequency.linearRampToValueAtTime(74, t + 0.5);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.05, t + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.72);
+    motor.connect(gain);
+    grain.connect(filter).connect(gain);
+    gain.connect(this.master);
+    motor.start(t);
+    grain.start(t);
+    motor.stop(t + 0.76);
+    grain.stop(t + 0.76);
+  }
+
   playStaticZap() {
     if (!this.ctx || !this.noiseBuffer || !this.master) return;
     const src = this.ctx.createBufferSource();
@@ -538,6 +632,15 @@ export class AudioEngine {
       this.playTVStatic(0.15, 3000);
     } else if (scene === 'bedroom') {
       this.playHum(4000, 50);
+    } else if (scene === 'door') {
+      this.playHum(3600, 42);
+    } else if (scene === 'hallway') {
+      this.playCreak(58);
+    } else if (scene === 'service') {
+      this.playHum(4200, 62);
+    } else if (scene === 'hidden') {
+      this.silenceEverythingExceptTinnitus();
+      this.playTinnitus(0.18);
     }
   }
 
