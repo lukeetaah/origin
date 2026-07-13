@@ -69,7 +69,7 @@ function normalizeStored(value: unknown): StoredGame | null {
     route: Array.isArray(state.route) ? state.route.filter((scene) => scenes.has(scene)) : ['door'],
     carrying,
     ending: state.ending ?? null,
-    notice: typeof state.notice === 'string' ? state.notice : '¿Dónde está el cuaderno azul de Nora?',
+    notice: typeof state.notice === 'string' ? state.notice : 'La familia pidió un favor sencillo: entrar, juntar papeles y dejar lista la tasación.',
     started: Boolean(state.started),
   };
 
@@ -84,7 +84,7 @@ function normalizeMemory(value: unknown): OriginMemory {
   return createMemory({
     entries: typeof memory.entries === 'number' && Number.isFinite(memory.entries) ? memory.entries : 0,
     endings: Array.isArray(memory.endings) ? memory.endings.filter((ending): ending is OriginMemory['endings'][number] => (
-      ending === 'administrativa' || ending === 'familiar' || ending === 'comunitaria' || ending === 'cuidadora'
+      ending === 'ceder' || ending === 'resistir' || ending === 'exponer' || ending === 'despertar'
     )) : [],
     returnedNotebook: Boolean(memory.returnedNotebook),
     deliveredNotebook: Boolean(memory.deliveredNotebook),

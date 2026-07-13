@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'EL ORIGEN',
-  description: 'Juego narrativo doméstico sobre un cuaderno azul, una casa heredada a medias y el origen que se vuelve oficial.',
+  description: 'Juego de horror doméstico argentino sobre tasación, herencia, conducta observada y una casa que deja de obedecer.',
 };
 
 export default function RootLayout({

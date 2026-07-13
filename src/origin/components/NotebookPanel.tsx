@@ -13,9 +13,9 @@ export default function NotebookPanel({ state, onClose }: NotebookPanelProps) {
   const notebook = buildNotebook(state);
 
   return (
-    <aside className={styles.notebook} aria-label="cuaderno azul de Nora">
+    <aside className={styles.notebook} aria-label="libreta azul">
       <button className={styles.closePaper} onClick={onClose} type="button">cerrar</button>
-      <p className={styles.paperKicker}>cuaderno azul</p>
+      <p className={styles.paperKicker}>libreta azul</p>
       <h2>{notebook.heading}</h2>
       <p className={styles.hand}>{notebook.hand}</p>
 

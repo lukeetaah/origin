@@ -1,11 +1,12 @@
 import { FactKind, GameState } from './types';
 
 const titles: Record<FactKind, string> = {
-  encargo: 'lo que piden desde afuera',
-  contradiccion: 'lo que no coincide',
-  registro: 'lo que Nora dejó comprobable',
-  cuidado: 'lo que sostuvo la casa',
-  objeto: 'objetos que saben más que el papel',
+  tramite: 'lo que el trámite intenta volver normal',
+  familia: 'lo que la familia acomodó para parecer cuidado',
+  protocolo: 'el método escondido en la casa',
+  conducta: 'cómo te está midiendo la operación',
+  tasacion: 'el precio como arma',
+  anomalia: 'lo que la casa sabe antes de tiempo',
   consecuencia: 'lo que queda después',
 };
 
@@ -24,17 +25,19 @@ export function buildNotebook(state: GameState) {
     .filter((section) => section.lines.length > 0);
 
   const mutations = [
-    state.flags.ledgerDecoded ? '“gastos” queda tachado; debajo se lee “origen”.' : '',
-    state.flags.planOverlayDone ? 'Las columnas empiezan a parecer medidas de habitaciones.' : '',
+    state.flags.ledgerDecoded ? '“Cuidado” queda tachado; debajo se lee “administración de desgaste”.' : '',
+    state.flags.behaviorProfileSeen ? 'Aparece una columna nueva: docilidad, duda, demora, precio.' : '',
+    state.flags.planOverlayDone ? 'Las habitaciones empiezan a parecer posiciones de un tablero viejo.' : '',
+    state.flags.valuationReady ? 'La carpeta de tasación ya no calcula metros: calcula obediencia.' : '',
     state.memory.endings.length > 0 ? 'Una entrada anterior dejó presión en el margen izquierdo.' : '',
     state.flags.nameWritten ? 'La última línea ya no está vacía.' : '',
   ].filter(Boolean);
 
   return {
-    heading: 'Cuaderno azul de Nora',
+    heading: 'Libreta azul',
     hand: state.flags.notebookFound
-      ? 'Letra inclinada, tinta azul lavada por vapor de cocina. No ordena nostalgia: ata aportes, noches y llaves.'
-      : 'Todavía falta encontrarla.',
+      ? 'Letra inclinada, tinta lavada por vapor de cocina. No guarda nostalgia: guarda procedimiento, daño y precio.'
+      : 'Todavía falta encontrarla. La casa sólo muestra trámite hasta que aparece el método.',
     lines: state.notebook,
     mutations,
     sections,

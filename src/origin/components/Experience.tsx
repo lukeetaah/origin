@@ -136,10 +136,10 @@ export default function Experience() {
           <p className={styles.paperKicker}>La casa guarda esta versión</p>
           <h1>EL ORIGEN</h1>
           <p>{state.notice}</p>
-          <p className={styles.finalQuestion}>¿Qué origen de esta casa vas a volver oficial?</p>
+          <p className={styles.finalQuestion}>¿Cuánto vale una casa cuando por fin deja de obedecer?</p>
           <div className={styles.endingActions}>
             <button onClick={() => runAction('startAgain')} type="button">Volver a entrar</button>
-            {state.notebook.length > 0 && <button onClick={() => setNotebookOpen(true)} type="button">abrir cuaderno</button>}
+            {state.notebook.length > 0 && <button onClick={() => setNotebookOpen(true)} type="button">abrir libreta</button>}
           </div>
         </section>
         {notebookOpen && <NotebookPanel state={state} onClose={() => setNotebookOpen(false)} />}
@@ -152,7 +152,7 @@ export default function Experience() {
     return (
       <main className={styles.cover}>
         <section className={styles.coverCard} aria-label="Portada">
-          <p className={styles.paperKicker}>departamento de Nora</p>
+          <p className={styles.paperKicker}>casa de la abuela</p>
           <h1>EL ORIGEN</h1>
           <button onClick={() => runAction('enter')} type="button">{enterLabel}</button>
           {hasContinue && <button className={styles.secondaryButton} onClick={() => runAction('continue')} type="button">Continuar</button>}
@@ -171,10 +171,28 @@ export default function Experience() {
         state={state}
       />
 
+      <aside className={styles.caseNote} aria-label="orden de trabajo">
+        <p className={styles.paperKicker}>orden de trabajo</p>
+        <h2>Tasación pendiente</h2>
+        <ol>
+          {objectivesFor(state).map((objective) => (
+            <li className={objective.done ? styles.doneObjective : ''} key={objective.text}>{objective.text}</li>
+          ))}
+        </ol>
+      </aside>
+
+      {state.scene === 'living' && state.flags.tv1986Seen && (
+        <aside className={styles.tvSignal} aria-label="transmisión ficticia de 1986">
+          <p>JUNIO · 1986</p>
+          <strong>LA CASA JUEGA DE LOCAL</strong>
+          <span>avance: cocina → servicio → archivo · deuda acumulada: visible</span>
+        </aside>
+      )}
+
       {subtitles && <p className={styles.caption} aria-live="polite">{state.notice}</p>}
 
       <div className={styles.quietControls} aria-label="controles discretos">
-        {state.flags.notebookFound && <button onClick={() => setNotebookOpen(true)} type="button">cuaderno</button>}
+        {state.flags.notebookFound && <button onClick={() => setNotebookOpen(true)} type="button">libreta</button>}
         <button onClick={() => setSettingsOpen((value) => !value)} type="button">sonido</button>
       </div>
 
@@ -209,4 +227,14 @@ export default function Experience() {
       {notebookOpen && <NotebookPanel state={state} onClose={() => setNotebookOpen(false)} />}
     </main>
   );
+}
+
+function objectivesFor(state: GameState) {
+  return [
+    { text: 'Leer el sobre y entrar a la casa.', done: Boolean(state.flags.envelopeRead && state.flags.doorOpened) },
+    { text: 'Contrastar carpeta, heladera y llaves.', done: Boolean(state.flags.folderFound && state.flags.fridgeChecked && state.flags.keyringSeen) },
+    { text: 'Encontrar la libreta azul y cruzarla con el plano.', done: Boolean(state.flags.notebookFound && state.flags.planOverlayDone) },
+    { text: 'Descubrir quién mide tu conducta.', done: Boolean(state.flags.behaviorProfileSeen) },
+    { text: state.flags.valuationReady ? 'Decidir si firmar, rechazar o exponer.' : 'Volver al living y revisar la tasación.', done: Boolean(state.ending) },
+  ];
 }

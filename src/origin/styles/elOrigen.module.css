@@ -144,9 +144,9 @@
   background-image:
     linear-gradient(180deg, rgba(0, 0, 0, .18), rgba(0, 0, 0, .34)),
     var(--bg);
-  background-size: cover;
+  background-size: 100% 100%;
   background-position: center;
-  filter: saturate(.72) sepia(.18) brightness(.73) contrast(1.14);
+  filter: saturate(.9) sepia(.08) brightness(.94) contrast(1.05);
 }
 
 .grain,
@@ -169,14 +169,14 @@
 .vignette {
   z-index: 45;
   background:
-    radial-gradient(circle at var(--lx, 50%) var(--ly, 48%), transparent 0 8rem, rgba(0, 0, 0, .18) 15rem, rgba(0, 0, 0, .76) 45rem),
-    linear-gradient(90deg, rgba(0, 0, 0, .62), transparent 14%, transparent 82%, rgba(0, 0, 0, .7));
+    radial-gradient(circle at var(--lx, 50%) var(--ly, 48%), transparent 0 12rem, rgba(0, 0, 0, .1) 20rem, rgba(0, 0, 0, .48) 52rem),
+    linear-gradient(90deg, rgba(0, 0, 0, .32), transparent 14%, transparent 82%, rgba(0, 0, 0, .36));
 }
 
 .flashlight {
   z-index: 46;
   background:
-    radial-gradient(circle at var(--lx, 50%) var(--ly, 48%), rgba(255, 231, 160, .34), rgba(255, 231, 160, .10) 8rem, transparent 17rem);
+    radial-gradient(circle at var(--lx, 50%) var(--ly, 48%), rgba(255, 231, 160, .18), rgba(255, 231, 160, .055) 8rem, transparent 18rem);
   mix-blend-mode: screen;
   transition: background-position .08s linear;
 }
@@ -308,6 +308,78 @@
   font-size: clamp(.95rem, 1.5vw, 1.1rem);
   line-height: 1.4;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
+
+.caseNote {
+  position: fixed;
+  left: clamp(.75rem, 2.4vw, 1.6rem);
+  top: clamp(.75rem, 2.4vw, 1.4rem);
+  z-index: 88;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: .9rem 1rem;
+  border: 1px solid rgba(44, 31, 14, .3);
+  background:
+    linear-gradient(160deg, rgba(222, 205, 143, .92), rgba(178, 149, 82, .82)),
+    repeating-linear-gradient(0deg, rgba(60, 39, 18, .045) 0 1px, transparent 1px 6px);
+  color: #191006;
+  box-shadow: 0 1rem 3.5rem rgba(0, 0, 0, .38);
+}
+
+.caseNote h2 {
+  margin: 0 0 .55rem;
+  font-size: 1.12rem;
+  letter-spacing: -.02em;
+}
+
+.caseNote ol {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.caseNote li {
+  margin: .24rem 0;
+  line-height: 1.25;
+}
+
+.doneObjective {
+  opacity: .58;
+  text-decoration: line-through;
+}
+
+.tvSignal {
+  position: fixed;
+  left: clamp(1rem, 4vw, 3rem);
+  top: clamp(12rem, 24vh, 15rem);
+  z-index: 92;
+  width: min(24rem, calc(100vw - 2rem));
+  padding: .8rem .95rem;
+  border: 1px solid rgba(184, 226, 199, .45);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 4px),
+    rgba(6, 12, 9, .72);
+  color: #dff7df;
+  box-shadow: 0 1rem 4rem rgba(0, 0, 0, .42);
+  text-shadow: 0 0 .6rem rgba(155, 255, 189, .4);
+  pointer-events: none;
+}
+
+.tvSignal p {
+  margin: 0 0 .35rem;
+  font: 700 .66rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .16em;
+  color: #ffe89a;
+}
+
+.tvSignal strong {
+  display: block;
+  margin-bottom: .35rem;
+  font-size: .92rem;
+}
+
+.tvSignal span {
+  display: block;
+  font: 700 .7rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color: #b9d8c2;
 }
 
 .quietControls {

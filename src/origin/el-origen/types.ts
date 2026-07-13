@@ -1,10 +1,10 @@
-export const SAVE_VERSION = 2 as const;
-export const SAVE_KEY = 'el-origen-casa-de-nora-v2';
-export const OLD_SAVE_KEYS = [] as const;
+export const SAVE_VERSION = 3 as const;
+export const SAVE_KEY = 'el-origen-la-casa-v3';
+export const OLD_SAVE_KEYS = ['el-origen-casa-de-nora-v2'] as const;
 
 export type SceneId = 'door' | 'hallway' | 'living' | 'kitchen' | 'bedroom' | 'service' | 'hidden' | 'ending';
 
-export type EndingId = 'administrativa' | 'familiar' | 'comunitaria' | 'cuidadora';
+export type EndingId = 'ceder' | 'resistir' | 'exponer' | 'despertar';
 
 export type CarryItem = 'notebook' | null;
 
@@ -18,14 +18,20 @@ export type FlagId =
   | 'tileLoose'
   | 'notebookFound'
   | 'ledgerDecoded'
-  | 'heightMarksRead'
+  | 'folderFound'
+  | 'fridgeChecked'
   | 'keyringSeen'
+  | 'tv1986Seen'
   | 'servicePlanSeen'
+  | 'behaviorProfileSeen'
   | 'planOverlayDone'
   | 'hiddenPanelOpened'
   | 'registryUnderstood'
   | 'truthUnderstood'
-  | 'doorLeftOpen'
+  | 'valuationReady'
+  | 'lowPriceMarked'
+  | 'priceRefused'
+  | 'protocolExposed'
   | 'nameWritten';
 
 export type ActionId =
@@ -45,14 +51,18 @@ export type ActionId =
   | 'loosenTile'
   | 'takeNotebook'
   | 'readNotebook'
-  | 'inspectHeightMarks'
+  | 'inspectFolder'
+  | 'checkFridge'
   | 'inspectKeyring'
+  | 'watchTV1986'
   | 'inspectServicePlan'
+  | 'inspectBehaviorProfile'
   | 'overlayLedgerAndPlan'
   | 'openHiddenPanel'
-  | 'placeNotebookAdminEnvelope'
-  | 'placeNotebookFamilyBox'
-  | 'returnNotebookAndOpenDoor'
+  | 'inspectValuation'
+  | 'acceptLowPrice'
+  | 'refusePrice'
+  | 'exposeProtocol'
   | 'writeNameAndHangNotebook'
   | 'wait'
   | 'startAgain';
@@ -97,7 +107,7 @@ export type SceneRecord = {
   hotspots: Hotspot[];
 };
 
-export type FactKind = 'encargo' | 'contradiccion' | 'registro' | 'cuidado' | 'objeto' | 'consecuencia';
+export type FactKind = 'tramite' | 'familia' | 'protocolo' | 'conducta' | 'tasacion' | 'anomalia' | 'consecuencia';
 
 export type Fact = {
   id: string;
