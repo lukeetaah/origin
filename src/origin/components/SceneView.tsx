@@ -150,10 +150,9 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
   );
 }
 
-function ProceduralSet({ kind }: { kind: 'door' | 'service' | 'hidden' }) {
+function ProceduralSet({ kind }: { kind: 'door' }) {
   if (kind === 'door') return <DoorSet />;
-  if (kind === 'service') return <ServiceSet />;
-  return <HiddenSet />;
+  return null;
 }
 
 function DoorSet() {
@@ -168,36 +167,6 @@ function DoorSet() {
       <div className={styles.envelopeProp} />
       <div className={styles.floorTiles} />
       <div className={styles.elevatorGlow} />
-    </div>
-  );
-}
-
-function ServiceSet() {
-  return (
-    <div className={`${styles.proceduralScene} ${styles.serviceSet}`} aria-hidden="true">
-      <div className={styles.serviceWall} />
-      <div className={styles.pipeColumn} />
-      <div className={styles.meterBox} />
-      <div className={styles.planPatch} />
-      <div className={styles.falsePanel} />
-      <div className={styles.serviceFloor} />
-      <div className={styles.patioLight} />
-    </div>
-  );
-}
-
-function HiddenSet() {
-  return (
-    <div className={`${styles.proceduralScene} ${styles.hiddenSet}`} aria-hidden="true">
-      <div className={styles.hiddenShelves}>
-        {Array.from({ length: 12 }, (_, index) => <i key={`shelf-${index}`} />)}
-      </div>
-      <div className={styles.pencilWall}>
-        {Array.from({ length: 10 }, (_, index) => <span key={`line-${index}`} />)}
-      </div>
-      <div className={styles.tileMouth} />
-      <div className={styles.openDoorLine} />
-      <div className={styles.hiddenDust} />
     </div>
   );
 }

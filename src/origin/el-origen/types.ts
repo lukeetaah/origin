@@ -91,7 +91,7 @@ export type SceneRecord = {
   id: Exclude<SceneId, 'ending'>;
   background:
     | { kind: 'image'; src: string; width: number; height: number }
-    | { kind: 'procedural'; style: 'door' | 'service' | 'hidden'; width: number; height: number };
+    | { kind: 'procedural'; style: 'door'; width: number; height: number };
   aria: string;
   ambient: string[];
   hotspots: Hotspot[];

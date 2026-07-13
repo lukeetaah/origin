@@ -72,7 +72,7 @@ test('apartment door opens immediately and moves to the hallway without arbitrar
   assert.equal(state.flags.doorOpened, true);
 });
 
-test('kitchen and bedroom use coherent scenes, assets and hotspots', () => {
+test('domestic rooms use coherent scenes, assets and hotspots', () => {
   let state = start();
   state = applyAction(state, 'openApartmentDoor');
 
@@ -87,6 +87,18 @@ test('kitchen and bedroom use coherent scenes, assets and hotspots', () => {
   assert.match(sceneRegistry.bedroom.aria, /Dormitorio de Nora/);
   assert.equal(sceneRegistry.bedroom.background.src, '/bg-bedroom.png');
   assert.ok(findHotspot(bedroom, 'height-marks'));
+
+  const service = applyAction(state, 'travelService');
+  assert.equal(service.scene, 'service');
+  assert.equal(sceneRegistry.service.background.kind, 'image');
+  assert.equal(sceneRegistry.service.background.src, '/bg-service.png');
+  assert.ok(findHotspot(service, 'service-plan'));
+
+  const hidden = applyAction(reachTruth(), 'travelHidden');
+  assert.equal(hidden.scene, 'hidden');
+  assert.equal(sceneRegistry.hidden.background.kind, 'image');
+  assert.equal(sceneRegistry.hidden.background.src, '/bg-hidden.png');
+  assert.ok(findHotspot(hidden, 'wall-registry'));
 });
 
 test('all hotspot coordinates stay inside the playable plane', () => {
