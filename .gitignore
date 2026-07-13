@@ -25,6 +25,7 @@
 # misc
 .DS_Store
 *.pem
+/ruptura/
 
 # debug
 npm-debug.log*
