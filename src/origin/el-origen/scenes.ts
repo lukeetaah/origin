@@ -57,7 +57,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       },
       exit('to-living', 'living comedor', { x: 13, y: 18, w: 23, h: 42 }, 'travelLiving', 'living'),
       exit('to-kitchen', 'cocina', { x: 58, y: 34, w: 19, h: 33 }, 'travelKitchen', 'kitchen'),
-      exit('to-bedroom', 'dormitorio de Elda', { x: 78, y: 11, w: 18, h: 61 }, 'travelBedroom', 'bedroom'),
+      exit('to-bedroom', 'dormitorio de Nora', { x: 78, y: 11, w: 18, h: 61 }, 'travelBedroom', 'bedroom'),
       exit('to-service', 'pasillo de servicio', { x: 36, y: 70, w: 25, h: 14 }, 'travelService', 'service'),
     ],
   },
@@ -93,7 +93,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       {
         id: 'document-box',
         label: 'caja de documentos',
-        verb: 'guardar libreta',
+        verb: 'guardar cuaderno',
         rect: { x: 72, y: 62, w: 18, h: 17 },
         action: 'placeNotebookFamilyBox',
         layer: 'near',
@@ -136,7 +136,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       },
       {
         id: 'blue-notebook',
-        label: 'libreta azul',
+        label: 'cuaderno azul',
         verb: 'tomar',
         rect: { x: 32, y: 49, w: 11, h: 10 },
         action: 'takeNotebook',
@@ -147,7 +147,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       },
       {
         id: 'read-notebook-kitchen',
-        label: 'libreta azul',
+        label: 'cuaderno azul',
         verb: 'abrir sobre la mesa',
         rect: { x: 21, y: 69, w: 19, h: 14 },
         action: 'readNotebook',
@@ -158,8 +158,8 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       },
       {
         id: 'admin-envelope-final',
-        label: 'sobre del administrador',
-        verb: 'poner la libreta adentro',
+        label: 'sobre del consorcio',
+        verb: 'poner el cuaderno adentro',
         rect: { x: 78, y: 62, w: 14, h: 15 },
         action: 'placeNotebookAdminEnvelope',
         layer: 'near',
@@ -188,7 +188,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
 
   bedroom: {
     id: 'bedroom',
-    aria: 'Dormitorio de Elda con cama tendida, ropero oscuro, marcas de altura y una caja baja de documentos.',
+    aria: 'Dormitorio de Nora con cama tendida, ropero oscuro, marcas de altura y una caja baja de documentos.',
     background: { kind: 'image', src: '/bg-bedroom.png', width: 1536, height: 1024 },
     ambient: ['percha golpeando dentro del ropero', 'tela que respira cuando pasa el colectivo', 'radiador frío'],
     hotspots: [
@@ -202,8 +202,8 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
         sound: 'paper',
       },
       {
-        id: 'elda-keyring',
-        label: 'llavero de Elda',
+        id: 'nora-keyring',
+        label: 'llavero de Nora',
         verb: 'mirar etiquetas',
         rect: { x: 61, y: 61, w: 13, h: 12 },
         action: 'inspectKeyring',
@@ -213,7 +213,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       {
         id: 'bedroom-document-box',
         label: 'caja familiar',
-        verb: 'guardar libreta',
+        verb: 'guardar cuaderno',
         rect: { x: 43, y: 69, w: 21, h: 14 },
         action: 'placeNotebookFamilyBox',
         layer: 'near',
@@ -245,11 +245,11 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
         gesture: 'hold',
       },
       {
-        id: 'recipe-plan-overlay',
-        label: 'plano y receta',
+        id: 'ledger-plan-overlay',
+        label: 'cuaderno y plano',
         verb: 'superponer',
         rect: { x: 33, y: 55, w: 29, h: 16 },
-        action: 'overlayRecipeAndPlan',
+        action: 'overlayLedgerAndPlan',
         layer: 'near',
         sound: 'paper',
         visibleWhen: [carryNotebook, flag('servicePlanSeen')],
@@ -299,7 +299,7 @@ export const sceneRegistry: Record<Exclude<SceneId, 'ending'>, SceneRecord> = {
       {
         id: 'return-notebook',
         label: 'hueco detrás del azulejo',
-        verb: 'dejar libreta y abrir puerta',
+        verb: 'dejar cuaderno y abrir puerta',
         rect: { x: 61, y: 61, w: 18, h: 16 },
         action: 'returnNotebookAndOpenDoor',
         layer: 'near',

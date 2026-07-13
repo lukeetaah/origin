@@ -136,10 +136,10 @@ export default function Experience() {
           <p className={styles.paperKicker}>La casa guarda esta versión</p>
           <h1>EL ORIGEN</h1>
           <p>{state.notice}</p>
-          <p className={styles.finalQuestion}>¿Quién tiene derecho a decidir qué versión de esta casa se vuelve oficial?</p>
+          <p className={styles.finalQuestion}>¿Qué origen de esta casa vas a volver oficial?</p>
           <div className={styles.endingActions}>
             <button onClick={() => runAction('startAgain')} type="button">Volver a entrar</button>
-            {state.notebook.length > 0 && <button onClick={() => setNotebookOpen(true)} type="button">abrir libreta</button>}
+            {state.notebook.length > 0 && <button onClick={() => setNotebookOpen(true)} type="button">abrir cuaderno</button>}
           </div>
         </section>
         {notebookOpen && <NotebookPanel state={state} onClose={() => setNotebookOpen(false)} />}
@@ -152,7 +152,7 @@ export default function Experience() {
     return (
       <main className={styles.cover}>
         <section className={styles.coverCard} aria-label="Portada">
-          <p className={styles.paperKicker}>departamento de Elda</p>
+          <p className={styles.paperKicker}>departamento de Nora</p>
           <h1>EL ORIGEN</h1>
           <button onClick={() => runAction('enter')} type="button">{enterLabel}</button>
           {hasContinue && <button className={styles.secondaryButton} onClick={() => runAction('continue')} type="button">Continuar</button>}
@@ -174,7 +174,7 @@ export default function Experience() {
       {subtitles && <p className={styles.caption} aria-live="polite">{state.notice}</p>}
 
       <div className={styles.quietControls} aria-label="controles discretos">
-        {state.flags.notebookFound && <button onClick={() => setNotebookOpen(true)} type="button">libreta</button>}
+        {state.flags.notebookFound && <button onClick={() => setNotebookOpen(true)} type="button">cuaderno</button>}
         <button onClick={() => setSettingsOpen((value) => !value)} type="button">sonido</button>
       </div>
 

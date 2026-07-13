@@ -69,7 +69,7 @@ function normalizeStored(value: unknown): StoredGame | null {
     route: Array.isArray(state.route) ? state.route.filter((scene) => scenes.has(scene)) : ['door'],
     carrying,
     ending: state.ending ?? null,
-    notice: typeof state.notice === 'string' ? state.notice : '¿Dónde está la libreta azul de Elda?',
+    notice: typeof state.notice === 'string' ? state.notice : '¿Dónde está el cuaderno azul de Nora?',
     started: Boolean(state.started),
   };
 

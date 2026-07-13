@@ -44,7 +44,7 @@ function reachTruth(memory) {
   state = applyAction(state, 'takeNotebook');
   state = applyAction(state, 'travelService');
   state = applyAction(state, 'inspectServicePlan');
-  state = applyAction(state, 'overlayRecipeAndPlan');
+  state = applyAction(state, 'overlayLedgerAndPlan');
   state = applyAction(state, 'openHiddenPanel');
   state = applyAction(state, 'travelHidden');
   return state;
@@ -54,12 +54,12 @@ test('fresh entry starts from a cover state and gives the player an immediate co
   const state = freshGame();
   assert.equal(state.started, false);
   assert.equal(state.scene, 'door');
-  assert.match(state.notice, /libreta azul de Elda/);
+  assert.match(state.notice, /cuaderno azul de Nora/);
 
   const entered = applyAction(state, 'enter');
   assert.equal(entered.started, true);
-  assert.match(entered.notice, /Encontrá la libreta azul/);
-  assert.match(entered.notice, /no se la des al administrador/);
+  assert.match(entered.notice, /Encontrá el cuaderno azul/);
+  assert.match(entered.notice, /consorcio/);
 });
 
 test('apartment door opens immediately and moves to the hallway without arbitrary key gates', () => {
@@ -84,7 +84,7 @@ test('kitchen and bedroom use coherent scenes, assets and hotspots', () => {
 
   const bedroom = applyAction(state, 'travelBedroom');
   assert.equal(bedroom.scene, 'bedroom');
-  assert.match(sceneRegistry.bedroom.aria, /Dormitorio de Elda/);
+  assert.match(sceneRegistry.bedroom.aria, /Dormitorio de Nora/);
   assert.equal(sceneRegistry.bedroom.background.src, '/bg-bedroom.png');
   assert.ok(findHotspot(bedroom, 'height-marks'));
 });
@@ -106,12 +106,12 @@ test('the notebook appears through a physical kitchen gesture and evolves with e
   const state = reachNotebook();
   assert.equal(state.carrying, 'notebook');
   assert.equal(state.flags.notebookFound, true);
-  assert.equal(state.flags.recipeDecoded, true);
+  assert.equal(state.flags.ledgerDecoded, true);
 
   const notebook = buildNotebook(state);
-  assert.match(notebook.heading, /Libreta azul/);
-  assert.ok(notebook.lines.some((line) => /Guiso para ocho/.test(line.text)));
-  assert.ok(notebook.mutations.some((line) => /registro/.test(line)));
+  assert.match(notebook.heading, /Cuaderno azul/);
+  assert.ok(notebook.lines.some((line) => /Fondo de mesa/.test(line.text)));
+  assert.ok(notebook.mutations.some((line) => /origen/.test(line)));
 });
 
 test('final placements are hidden until the material truth is understood', () => {
@@ -121,7 +121,7 @@ test('final placements are hidden until the material truth is understood', () =>
 
   state = applyAction(state, 'travelService');
   state = applyAction(state, 'inspectServicePlan');
-  state = applyAction(state, 'overlayRecipeAndPlan');
+  state = applyAction(state, 'overlayLedgerAndPlan');
   state = applyAction(state, 'travelKitchen');
   assert.ok(findHotspot(state, 'admin-envelope-final'));
 });
@@ -169,7 +169,7 @@ test('abandoned sustained interactions are tracked but do not rewrite truth', ()
 });
 
 test('visible EL ORIGEN content is not contaminated by retired project identity', () => {
-  const banned = /(RUPTURA|casillero|Mutual|La Espera|Juli[aá]n|Malena|Sosa|El que faltaba|ORIGIN)/i;
+  const banned = /(RUPTURA|casillero|Mutual|La Espera|Juli[aá]n|Malena|Sosa|El que faltaba|ORIGIN|Elda)/i;
   const surface = [
     ...Object.values(sceneRegistry).flatMap((scene) => [
       scene.aria,

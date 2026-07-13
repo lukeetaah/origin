@@ -111,32 +111,42 @@
   opacity: .82;
 }
 
-.stage,
-.plane {
+.stage {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
 
 .stage {
-  background: #090a07;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(74, 61, 38, .34), transparent 32rem),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .018) 0 1px, transparent 1px 4rem),
+    #090a07;
   touch-action: none;
 }
 
 .plane {
+  position: relative;
+  width: min(100vw, calc(100vh * var(--ratio, 1.5)));
+  height: min(100vh, calc(100vw / var(--ratio, 1.5)));
+  max-width: 100vw;
+  max-height: 100vh;
+  overflow: hidden;
   isolation: isolate;
+  box-shadow: 0 0 0 1px rgba(214, 190, 116, .13), 0 2rem 6rem rgba(0, 0, 0, .65);
 }
 
 .backdrop {
   position: absolute;
-  inset: -1.5%;
+  inset: 0;
   background-image:
     linear-gradient(180deg, rgba(0, 0, 0, .18), rgba(0, 0, 0, .34)),
     var(--bg);
   background-size: cover;
   background-position: center;
   filter: saturate(.72) sepia(.18) brightness(.73) contrast(1.14);
-  transform: scale(1.018);
 }
 
 .grain,

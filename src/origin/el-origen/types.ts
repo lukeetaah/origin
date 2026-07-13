@@ -1,13 +1,6 @@
-export const SAVE_VERSION = 1 as const;
-export const SAVE_KEY = 'el-origen-casa-de-elda-v1';
-export const OLD_SAVE_KEYS = [
-  'ruptura2-el-que-faltaba-v8',
-  'ruptura2-el-que-faltaba-v7',
-  'ruptura2-save-v4',
-  'ruptura2-save-v3',
-  'origin-current-state',
-  'ruptura_current_state',
-] as const;
+export const SAVE_VERSION = 2 as const;
+export const SAVE_KEY = 'el-origen-casa-de-nora-v2';
+export const OLD_SAVE_KEYS = [] as const;
 
 export type SceneId = 'door' | 'hallway' | 'living' | 'kitchen' | 'bedroom' | 'service' | 'hidden' | 'ending';
 
@@ -24,7 +17,7 @@ export type FlagId =
   | 'potRemembered'
   | 'tileLoose'
   | 'notebookFound'
-  | 'recipeDecoded'
+  | 'ledgerDecoded'
   | 'heightMarksRead'
   | 'keyringSeen'
   | 'servicePlanSeen'
@@ -55,7 +48,7 @@ export type ActionId =
   | 'inspectHeightMarks'
   | 'inspectKeyring'
   | 'inspectServicePlan'
-  | 'overlayRecipeAndPlan'
+  | 'overlayLedgerAndPlan'
   | 'openHiddenPanel'
   | 'placeNotebookAdminEnvelope'
   | 'placeNotebookFamilyBox'

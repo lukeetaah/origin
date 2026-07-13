@@ -61,6 +61,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
   const backgroundStyle = scene.background.kind === 'image'
     ? { '--bg': `url(${scene.background.src})` }
     : { '--bg': 'none' };
+  const ratio = scene.background.width / scene.background.height;
 
   return (
     <section
@@ -70,6 +71,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
       style={{
         '--lx': `${pointer.x}%`,
         '--ly': `${pointer.y}%`,
+        '--ratio': String(ratio),
         ...backgroundStyle,
       } as React.CSSProperties}
     >

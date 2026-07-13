@@ -14,7 +14,7 @@ import {
 } from './types';
 import { requirementsMet, sceneRegistry, visibleHotspotsForScene } from './scenes';
 
-const finalQuestion = '¿Quién tiene derecho a decidir qué versión de esta casa se vuelve oficial?';
+const finalQuestion = '¿Qué origen de esta casa vas a volver oficial?';
 
 const routeByAction: Partial<Record<ActionId, Exclude<SceneId, 'ending'>>> = {
   openApartmentDoor: 'hallway',
@@ -45,14 +45,14 @@ export function freshGame(memory = createMemory()): GameState {
   const now = Date.now();
   return {
     version: SAVE_VERSION,
-    runId: `elda-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    runId: `nora-${now.toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     started: false,
     scene: 'door',
     carrying: null,
     flags: {},
     facts: [],
     notebook: openingNotebook(memory),
-    notice: '¿Dónde está la libreta azul de Elda?',
+    notice: '¿Dónde está el cuaderno azul de Nora?',
     ending: null,
     actions: [],
     route: ['door'],
@@ -73,7 +73,7 @@ export function canUseHotspot(state: GameState, hotspot: Hotspot): { ok: boolean
     return { ok: false, reason: 'La casa todavía no guardó una entrada anterior con suficiente peso.' };
   }
   if (hotspot.requirements?.some((requirement) => requirement.kind === 'carry')) {
-    return { ok: false, reason: 'Ese lugar pide que tengas la libreta en la mano.' };
+    return { ok: false, reason: 'Ese lugar pide que tengas el cuaderno en la mano.' };
   }
   return { ok: false, reason: 'Todavía falta una comprobación material.' };
 }
@@ -99,7 +99,7 @@ export function applyAction(state: GameState, action: ActionId): GameState {
       started: true,
       flags: { ...next.flags, entered: true },
       memory,
-      notice: 'Encontrá la libreta azul antes de que lleguen a vaciar. Y no se la des al administrador.',
+      notice: 'Encontrá el cuaderno azul antes de que el consorcio cierre el departamento. Y no lo entregues sin leerlo.',
     });
   }
 
@@ -110,10 +110,10 @@ export function applyAction(state: GameState, action: ActionId): GameState {
     case 'readEnvelope':
       return addFact(
         setFlag(next, 'envelopeRead'),
-        'administrator-order',
+        'consortium-order',
         'encargo',
-        'El sobre exige entregar cualquier papel de propiedad antes de que retiren los muebles.',
-        'El administrador dejó un inventario ajeno: muebles, papeles, llaves. La libreta azul no aparece nombrada.',
+        'El sobre exige entregar escritura, recibos y llaves antes de que cambien la cerradura.',
+        'El consorcio dejó un inventario seco: muebles, papeles, llaves. El cuaderno azul no aparece nombrado.',
       );
 
     case 'inspectPhoto':
@@ -134,12 +134,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'radioTuned'),
         'radio-kitchen-line',
         'cuidado',
-        'La cinta repite una cuenta de platos, no una canción: “uno para Doña Elda, dos para los chicos, otro por si cae alguien”.',
-        'La perilla encuentra una voz gastada: no cuenta secretos, cuenta platos.',
+        'La cinta repite una asamblea de cocina: “si entra plata de changa, va al fondo; si entra comida, se cocina para todos”.',
+        'La perilla encuentra una voz gastada: no cuenta recuerdos, cuenta aportes.',
       );
       return pushNotebook(next, {
         id: 'radio-plates',
-        text: 'La radio guarda una lista de comida como si fuera un parte meteorológico.',
+        text: 'La radio guarda una lista de aportes: plata chica, garrafa, horas de cuidado, una noche bajo techo.',
       });
 
     case 'inspectPot':
@@ -147,30 +147,30 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'potRemembered'),
         'big-pot',
         'objeto',
-        'La olla tiene marcas de reparación y sal en los bordes: cocinó más de lo que una familia podía comer sola.',
-        'La olla no está sucia: está usada de una manera que el inventario no sabe medir.',
+        'La olla tiene marcas de reparación y sal en los bordes: sostuvo más gente que una familia legal.',
+        'La olla no está sucia: está usada de una manera que una escritura no sabe medir.',
       );
       return pushNotebook(next, {
         id: 'pot-scale',
-        text: 'Olla grande: cuando la casa no alcanzaba, Elda agrandaba la mesa.',
+        text: 'Olla grande: cuando la casa no alcanzaba, Nora agrandaba el acuerdo.',
       });
 
     case 'loosenTile':
-      return setNotice(setFlag(next, 'tileLoose'), 'El azulejo cede con una queja corta. Atrás hay tela azul y olor a harina vieja.');
+      return setNotice(setFlag(next, 'tileLoose'), 'El azulejo cede con una queja corta. Atrás hay tela azul y olor a papel húmedo.');
 
     case 'takeNotebook':
-      next = setFlag(setFlag(setFlag(next, 'notebookFound'), 'recipeDecoded'), 'tileLoose');
+      next = setFlag(setFlag(setFlag(next, 'notebookFound'), 'ledgerDecoded'), 'tileLoose');
       next = { ...next, carrying: 'notebook' };
       next = addFact(
         next,
-        'blue-notebook',
+        'blue-ledger',
         'registro',
-        'La libreta azul no junta recetas: usa cantidades, iniciales y sustituciones para registrar quién tuvo lugar en la casa.',
-        'La libreta azul de Elda aparece detrás del azulejo, envuelta en una bolsa de pan.',
+        'El cuaderno azul no junta menús: cruza gastos mínimos, iniciales y noches prestadas para probar cómo empezó realmente la casa.',
+        'El cuaderno azul de Nora aparece detrás del azulejo, envuelto en una bolsa de pan.',
       );
       next = pushNotebook(next, {
-        id: 'first-recipe',
-        text: 'Guiso para ocho: donde dice papa, leer cama; donde dice sal, leer documento; donde dice repetir, leer quedarse.',
+        id: 'first-ledger',
+        text: 'Fondo de mesa: donde dice harina, leer aporte; donde dice garrafa, leer llave; donde dice repetir, leer quedarse.',
       });
       if (next.memory.entries > 1) {
         next = pushNotebook(next, {
@@ -182,13 +182,13 @@ export function applyAction(state: GameState, action: ActionId): GameState {
 
     case 'readNotebook':
       if (next.carrying !== 'notebook') {
-        return setNotice(next, 'La pared enumera nombres incompletos. Falta la libreta para entender el orden.');
+        return setNotice(next, 'La pared enumera nombres incompletos. Falta el cuaderno para entender el orden.');
       }
       next = pushNotebook(next, {
         id: 'notebook-rule',
-        text: 'No eran recetas para comer mejor. Eran formas de que alguien siguiera existiendo sin figurar.',
+        text: 'No eran cuentas domésticas. Eran una forma de que alguien pudiera decir “yo también puse algo” sin quedar expuesto.',
       });
-      return setNotice(next, 'La letra cambia de presión cuando llega a los nombres sin documento. Ahí Elda no explica: protege.');
+      return setNotice(next, 'La letra cambia de presión cuando llega a los nombres sin documento. Ahí Nora no explica: protege.');
 
     case 'inspectHeightMarks':
       next = addFact(
@@ -206,9 +206,9 @@ export function applyAction(state: GameState, action: ActionId): GameState {
     case 'inspectKeyring':
       return addFact(
         setFlag(next, 'keyringSeen'),
-        'elda-keyring',
+        'nora-keyring',
         'objeto',
-        'El llavero de Elda tiene etiquetas domésticas, no legales: patio, vecina, gas, pieza fría, volver tarde.',
+        'El llavero de Nora tiene etiquetas domésticas, no legales: patio, vecina, gas, pieza fría, volver tarde.',
         'Las llaves no abren propiedades. Abren costumbres.',
       );
 
@@ -225,24 +225,24 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         text: 'Plano bajo pintura: si una pared se dibuja dos veces, una de las dos está mintiendo.',
       });
 
-    case 'overlayRecipeAndPlan':
+    case 'overlayLedgerAndPlan':
       next = setFlag(setFlag(next, 'planOverlayDone'), 'registryUnderstood');
       next = setFlag(next, 'truthUnderstood');
       next = addFact(
         next,
-        'recipe-plan-overlay',
+        'ledger-plan-overlay',
         'registro',
-        'Superpuestas, las cantidades de la receta coinciden con piezas, camas y turnos. La libreta es un plano de refugio.',
-        'La receta encaja sobre el plano como si siempre hubiera sido una llave.',
+        'Superpuestos, los gastos del cuaderno coinciden con piezas, camas y turnos. El supuesto origen familiar era un atajo legal.',
+        'El cuaderno encaja sobre el plano como si siempre hubiera sido una llave.',
       );
       return pushNotebook(next, {
         id: 'overlay-truth',
-        text: 'La receta no describe comida: distribuye techo, silencio y riesgo.',
+        text: 'El origen no fue una herencia: fue un fondo común firmado por una sola persona para que otros no quedaran afuera.',
       });
 
     case 'openHiddenPanel':
       next = setFlag(next, 'hiddenPanelOpened');
-      return setNotice(next, 'El panel corre apenas. El hueco no estaba escondido por miedo al robo, sino al archivo.');
+      return setNotice(next, 'El panel corre apenas. El hueco no estaba escondido por miedo al robo, sino a una versión oficial demasiado cómoda.');
 
     case 'placeNotebookAdminEnvelope':
       return finish(next, 'administrativa');
@@ -291,7 +291,7 @@ function emptyDirector(): DirectorState {
 
 function openingNotebook(memory: OriginMemory): NotebookLine[] {
   const lines: NotebookLine[] = [
-    { id: 'cover-question', text: '¿Dónde está la libreta azul de Elda?' },
+    { id: 'cover-question', text: '¿Dónde está el cuaderno azul de Nora?' },
   ];
   if (memory.endings.length > 0) {
     lines.push({ id: 'after-entry', text: 'Al volver, una línea aparece más oscura aunque nadie la escribió delante mío.' });
@@ -371,7 +371,7 @@ function travelNotice(scene: SceneId, visits: number) {
   if (scene === 'hallway') return 'El pasillo ordena la casa como una frase: cada puerta promete una versión distinta.';
   if (scene === 'living') return 'El living comedor conserva visitas aunque nadie se siente.';
   if (scene === 'kitchen') return 'La cocina no parece abandonada: parece interrumpida.';
-  if (scene === 'bedroom') return 'El dormitorio de Elda está demasiado prolijo para haber terminado.';
+  if (scene === 'bedroom') return 'El dormitorio de Nora está demasiado prolijo para haber terminado.';
   if (scene === 'service') return 'El pasillo de servicio tiene una humedad con forma de mapa.';
   if (scene === 'hidden') return `El hueco no explica el secreto. Lo vuelve material. ${finalQuestion}`;
   return 'La puerta queda atrás, pero el sobre sigue pesando.';
@@ -388,7 +388,7 @@ function finish(state: GameState, ending: EndingId): GameState {
     hiddenNotebook: state.memory.hiddenNotebook || ending === 'comunitaria',
     returnedNotebook: state.memory.returnedNotebook || ending === 'comunitaria',
     lastNotebookLine: ending === 'cuidadora'
-      ? 'La libreta queda colgada en la cocina. Cuidar también deja deuda.'
+      ? 'El cuaderno queda colgado en la cocina. Cuidar también deja deuda.'
       : state.memory.lastNotebookLine,
   };
 
@@ -406,15 +406,15 @@ function finish(state: GameState, ending: EndingId): GameState {
 
 function endingNotice(ending: EndingId) {
   if (ending === 'administrativa') {
-    return 'La libreta dentro del sobre prueba que hubo una red de cuidado. También entrega los nombres que Elda había vuelto borrosos para protegerlos.';
+    return 'El cuaderno dentro del sobre prueba que hubo un fondo común. También entrega los nombres que Nora había vuelto borrosos para protegerlos.';
   }
   if (ending === 'familiar') {
-    return 'La caja familiar conserva la libreta como herencia privada. La casa gana una verdad íntima y pierde su fuerza como refugio para otros.';
+    return 'La caja familiar conserva el cuaderno como herencia privada. La casa gana una verdad íntima y pierde su fuerza como prueba compartida.';
   }
   if (ending === 'comunitaria') {
-    return 'La libreta vuelve al hueco y la puerta queda sin trabar. Nadie recibe un expediente completo; alguien, tal vez, todavía encuentra lugar.';
+    return 'El cuaderno vuelve al hueco y la puerta queda sin trabar. Nadie recibe un expediente completo; alguien, tal vez, todavía encuentra lugar.';
   }
-  return 'Escribís un nombre en la última línea y colgás la libreta en la cocina. La casa ya no pide testigo: pide relevo.';
+  return 'Escribís un nombre en la última línea y colgás el cuaderno en la cocina. La casa ya no pide testigo: pide relevo.';
 }
 
 function trackIgnored(state: GameState): GameState {

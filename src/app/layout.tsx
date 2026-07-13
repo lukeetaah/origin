@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'EL ORIGEN',
-  description: 'Juego narrativo doméstico sobre una libreta azul, una casa heredada y el derecho a dejar registro.',
+  description: 'Juego narrativo doméstico sobre un cuaderno azul, una casa heredada a medias y el origen que se vuelve oficial.',
 };
 
 export default function RootLayout({
