@@ -19,7 +19,8 @@ export const objectRegistry = {
     hover: 'papel bajo la puerta',
     touch: 'El papel raspa el piso.',
     sound: 'paper',
-    notebookEntry: 'Piden una llave azul.',
+    notebookEntry: 'Piden cuaderno y carpeta.',
+    inspection: 'administrator-envelope',
     required: true,
   },
   'apartment-door': {
@@ -54,9 +55,10 @@ export const objectRegistry = {
     maxSize: size(24, 32),
     action: 'inspectPhoto',
     hover: 'foto corrida',
-    touch: 'El vidrio devuelve otra puerta.',
+    touch: 'El vidrio devuelve la puerta de servicio.',
     sound: 'paper',
-    notebookEntry: 'La foto fue tomada acá.',
+    notebookEntry: 'La puerta de servicio estaba abierta.',
+    inspection: 'family-photo',
     required: true,
   },
   'to-living': {
@@ -187,6 +189,7 @@ export const objectRegistry = {
     alternateState: 'Se vuelve final después del protocolo.',
     sound: 'paper',
     notebookEntry: 'El precio mide cansancio.',
+    inspection: 'valuation-folder',
     required: true,
   },
   'living-photo-reflection': {
@@ -333,7 +336,8 @@ export const objectRegistry = {
     hover: 'carpeta',
     touch: 'Las fechas no cierran.',
     sound: 'paper',
-    notebookEntry: 'Primero desgaste, después precio.',
+    notebookEntry: 'La oferta baja ya estaba preparada.',
+    inspection: 'kitchen-folder',
     required: true,
   },
   'loose-tile': {
@@ -372,6 +376,7 @@ export const objectRegistry = {
     touch: 'Está tibia.',
     sound: 'paper',
     notebookEntry: 'La libreta no explica: conecta.',
+    inspection: 'blue-notebook',
     required: true,
   },
   'read-notebook-kitchen': {
@@ -463,6 +468,7 @@ export const objectRegistry = {
     touch: 'Falta la azul.',
     sound: 'ceramic',
     notebookEntry: 'La llave azul no está.',
+    inspection: 'grandmother-keyring',
     required: true,
   },
   'bedroom-photo': {
@@ -536,6 +542,7 @@ export const objectRegistry = {
     touch: 'No coincide con el pasillo.',
     sound: 'paper',
     notebookEntry: 'El pasillo no figura.',
+    inspection: 'service-plan',
     required: true,
   },
   'behavior-sensor': {
@@ -555,6 +562,7 @@ export const objectRegistry = {
     touch: 'Imprime una etiqueta.',
     sound: 'intercom',
     notebookEntry: 'También me miden.',
+    inspection: 'behavior-sensor',
     required: true,
   },
   'ledger-plan-overlay': {

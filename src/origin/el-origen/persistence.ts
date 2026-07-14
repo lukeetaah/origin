@@ -1,5 +1,5 @@
 import { applyAction, createMemory, freshGame, recoverFromCorruptSave } from './game';
-import { CarryItem, DirectorState, GameState, OLD_SAVE_KEYS, OriginMemory, SAVE_KEY, SAVE_VERSION, SceneId, StoredGame } from './types';
+import { CarryItem, DirectorState, GameState, InspectedObjectState, NarrativeEvidence, OLD_SAVE_KEYS, OriginMemory, SAVE_KEY, SAVE_VERSION, SceneId, StoredGame } from './types';
 
 const scenes = new Set<SceneId>(['door', 'hallway', 'living', 'kitchen', 'bedroom', 'service', 'hidden', 'ending']);
 
@@ -64,13 +64,15 @@ function normalizeStored(value: unknown): StoredGame | null {
     memory,
     flags: typeof state.flags === 'object' && state.flags ? state.flags : {},
     facts: Array.isArray(state.facts) ? state.facts : [],
+    evidence: normalizeEvidence(state.evidence),
+    objectStates: normalizeObjectStates(state.objectStates),
     notebook: Array.isArray(state.notebook) ? state.notebook : [],
     actions: Array.isArray(state.actions) ? state.actions : [],
     route: Array.isArray(state.route) ? state.route.filter((scene) => scenes.has(scene)) : ['door'],
     director: normalizeDirector(state.director),
     carrying,
     ending: state.ending ?? null,
-    notice: typeof state.notice === 'string' ? state.notice : 'Hay que buscar una llave azul.',
+    notice: typeof state.notice === 'string' ? state.notice : 'Buscás el cuaderno azul y la carpeta.',
     started: Boolean(state.started),
   };
 
@@ -92,7 +94,37 @@ function normalizeDirector(value: unknown): DirectorState {
     hiddenWhileActive: typeof director.hiddenWhileActive === 'number' ? director.hiddenWhileActive : 0,
     tensionEvents: Array.isArray(director.tensionEvents) ? director.tensionEvents.filter((item): item is string => typeof item === 'string') : [],
     lastTensionAction: typeof director.lastTensionAction === 'number' ? director.lastTensionAction : -99,
+    flashlightEvents: Array.isArray(director.flashlightEvents) ? director.flashlightEvents.filter((item): item is string => typeof item === 'string') : [],
+    lastLitObject: typeof director.lastLitObject === 'string' ? director.lastLitObject : undefined,
+    strongStartleUsed: Boolean(director.strongStartleUsed),
   };
+}
+
+function normalizeEvidence(value: unknown): NarrativeEvidence[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is NarrativeEvidence => (
+    Boolean(item) &&
+    typeof item === 'object' &&
+    typeof (item as NarrativeEvidence).id === 'string' &&
+    typeof (item as NarrativeEvidence).objectId === 'string' &&
+    typeof (item as NarrativeEvidence).clueId === 'string' &&
+    typeof (item as NarrativeEvidence).fact === 'string'
+  ));
+}
+
+function normalizeObjectStates(value: unknown): Record<string, InspectedObjectState> {
+  if (!value || typeof value !== 'object') return {};
+  return Object.fromEntries(Object.entries(value as Record<string, Partial<InspectedObjectState>>).map(([key, item]) => [
+    key,
+    {
+      inspected: Boolean(item?.inspected),
+      open: Boolean(item?.open),
+      changed: Boolean(item?.changed),
+      discoveredClues: Array.isArray(item?.discoveredClues)
+        ? item.discoveredClues.filter((clue): clue is string => typeof clue === 'string')
+        : [],
+    },
+  ]));
 }
 
 function normalizeMemory(value: unknown): OriginMemory {

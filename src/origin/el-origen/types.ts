@@ -1,6 +1,6 @@
-export const SAVE_VERSION = 3 as const;
-export const SAVE_KEY = 'el-origen-la-casa-v3';
-export const OLD_SAVE_KEYS = ['el-origen-casa-de-nora-v2'] as const;
+export const SAVE_VERSION = 4 as const;
+export const SAVE_KEY = 'el-origen-la-casa-v4';
+export const OLD_SAVE_KEYS = ['el-origen-la-casa-v3', 'el-origen-casa-de-nora-v2'] as const;
 
 export type SceneId = 'door' | 'hallway' | 'living' | 'kitchen' | 'bedroom' | 'service' | 'hidden' | 'ending';
 
@@ -32,7 +32,12 @@ export type FlagId =
   | 'lowPriceMarked'
   | 'priceRefused'
   | 'protocolExposed'
-  | 'nameWritten';
+  | 'nameWritten'
+  | 'serviceDoorPhotoSeen'
+  | 'familyMessageContradicted'
+  | 'objectMovedAfterInspection'
+  | 'houseRepeatedAction'
+  | 'strongStartleUsed';
 
 export type ActionId =
   | 'enter'
@@ -84,6 +89,10 @@ export type Rect = {
 
 export type HotspotShape = 'rect' | 'circle' | 'door' | 'paper' | 'object';
 export type InteractiveObjectId = string;
+export type InspectableObjectId = string;
+export type InspectionClueId = string;
+export type InspectionSide = 'front' | 'back' | 'left' | 'right' | 'top' | 'base' | 'inside';
+export type InspectionModelKind = 'photo' | 'document' | 'folder' | 'keys' | 'notebook' | 'cassette' | 'box' | 'sensor' | 'pot';
 
 export type Hotspot = {
   id: string;
@@ -99,6 +108,9 @@ export type Hotspot = {
   gesture?: 'hold' | 'drag' | 'place';
   visibleWhen?: Requirement[];
   requirements?: Requirement[];
+  requiresLight?: boolean;
+  lightRadius?: number;
+  inspectable?: InspectableObjectId;
 };
 
 export type SceneRecord = {
@@ -130,7 +142,65 @@ export type InteractiveObjectRecord = {
   dependencies?: Requirement[];
   sound?: SoundCue;
   notebookEntry?: string;
+  inspection?: InspectableObjectId;
   required: boolean;
+};
+
+export type ObjectNarrativeState = {
+  objectId: InteractiveObjectId;
+  first: string;
+  clueFound: string;
+  afterRelated: string;
+  changed: string;
+};
+
+export type InspectionClue = {
+  id: InspectionClueId;
+  side: InspectionSide;
+  title: string;
+  fact: string;
+  question: string;
+  reveal: string;
+  requiresLight?: boolean;
+  lightZone?: 'left' | 'center' | 'right' | 'top' | 'bottom';
+  requiresOpen?: boolean;
+  consequence: ActionId;
+};
+
+export type InspectableObject = {
+  id: InspectableObjectId;
+  objectId: InteractiveObjectId;
+  title: string;
+  scene: Exclude<SceneId, 'ending'>;
+  model: InspectionModelKind;
+  primary: boolean;
+  canOpen?: boolean;
+  canDisassemble?: boolean;
+  material: 'paper' | 'cardboard' | 'metal' | 'cloth' | 'glass' | 'ceramic' | 'plastic' | 'wood';
+  instruction: string;
+  initialObservation: string;
+  afterClueObservation: string;
+  changedObservation?: string;
+  clues: InspectionClue[];
+};
+
+export type NarrativeEvidence = {
+  id: string;
+  objectId: InteractiveObjectId;
+  clueId: InspectionClueId;
+  icon: string;
+  title: string;
+  fact: string;
+  link?: string;
+  question: string;
+  at: number;
+};
+
+export type InspectedObjectState = {
+  inspected: boolean;
+  open: boolean;
+  changed: boolean;
+  discoveredClues: InspectionClueId[];
 };
 
 export type FactKind = 'tramite' | 'familia' | 'protocolo' | 'conducta' | 'tasacion' | 'anomalia' | 'consecuencia';
@@ -171,6 +241,9 @@ export type DirectorState = {
   hiddenWhileActive: number;
   tensionEvents: string[];
   lastTensionAction: number;
+  flashlightEvents: string[];
+  lastLitObject?: string;
+  strongStartleUsed: boolean;
 };
 
 export type GameState = {
@@ -182,6 +255,8 @@ export type GameState = {
   carrying: CarryItem;
   flags: Partial<Record<FlagId, boolean>>;
   facts: Fact[];
+  evidence: NarrativeEvidence[];
+  objectStates: Record<string, InspectedObjectState>;
   notebook: NotebookLine[];
   notice: string;
   ending: EndingId | null;

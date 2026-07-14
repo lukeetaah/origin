@@ -7,12 +7,17 @@ import {
   FlagId,
   GameState,
   Hotspot,
+  InspectedObjectState,
+  InspectionClueId,
+  InteractiveObjectId,
+  NarrativeEvidence,
   NotebookLine,
   OriginMemory,
   SAVE_VERSION,
   SceneId,
 } from './types';
 import { requirementsMet, sceneRegistry, visibleHotspotsForScene } from './scenes';
+import { findInspectionClue, getInspectableObject } from './inspection';
 
 const finalQuestion = 'La cifra espera.';
 
@@ -51,8 +56,10 @@ export function freshGame(memory = createMemory()): GameState {
     carrying: null,
     flags: {},
     facts: [],
+    evidence: [],
+    objectStates: {},
     notebook: openingNotebook(memory),
-    notice: 'Hay que buscar una llave azul.',
+    notice: 'Buscás el cuaderno azul y la carpeta antes de las 22.',
     ending: null,
     actions: [],
     route: ['door'],
@@ -102,7 +109,7 @@ export function applyAction(state: GameState, action: ActionId): GameState {
       started: true,
       flags: { ...next.flags, entered: true },
       memory,
-      notice: 'Buscá la llave azul.',
+      notice: 'Entraste por el cuaderno azul y la carpeta.',
     });
   }
 
@@ -113,8 +120,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'envelopeRead'),
         'valuation-order',
         'tramite',
-        'El sobre no pide recuerdos: pide llaves, recibos, estado de la heladera y una firma para bajar el valor por “abandono funcional”.',
-        'Piden una llave azul. No dicen para qué.',
+        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora.',
+        'Cuaderno azul, carpeta, 22:00.',
       );
     }
     return travelTo(next, targetScene);
@@ -126,8 +133,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'envelopeRead'),
         'valuation-order',
         'tramite',
-        'El sobre no pide recuerdos: pide llaves, recibos, estado de la heladera y una firma para bajar el valor por “abandono funcional”.',
-        'Piden una llave azul. No dicen para qué.',
+        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora.',
+        'Cuaderno azul, carpeta, 22:00.',
       );
 
     case 'inspectPhoto':
@@ -366,12 +373,110 @@ function emptyDirector(): DirectorState {
     hiddenWhileActive: 0,
     tensionEvents: [],
     lastTensionAction: -99,
+    flashlightEvents: [],
+    strongStartleUsed: false,
   };
+}
+
+export function discoverInspectionClue(state: GameState, objectId: InteractiveObjectId, clueId: InspectionClueId): GameState {
+  const inspectable = getInspectableObject(objectId);
+  const clue = findInspectionClue(objectId, clueId);
+  if (!inspectable || !clue) return state;
+  const currentObjectState = getInspectedObjectState(state, objectId);
+  if (currentObjectState.discoveredClues.includes(clueId)) {
+    return setNotice(state, inspectable.afterClueObservation);
+  }
+
+  let next: GameState = {
+    ...state,
+    objectStates: {
+      ...state.objectStates,
+      [objectId]: {
+        ...currentObjectState,
+        inspected: true,
+        open: currentObjectState.open || Boolean(clue.requiresOpen),
+        discoveredClues: [...currentObjectState.discoveredClues, clueId],
+      },
+    },
+  };
+
+  next = recordEvidence(next, {
+    id: `${objectId}:${clueId}`,
+    objectId,
+    clueId,
+    icon: evidenceIcon(inspectable.model),
+    title: clue.title,
+    fact: clue.fact,
+    question: clue.question,
+    link: clue.requiresLight ? 'visible sólo con luz rasante' : clue.requiresOpen ? 'oculto en el interior' : undefined,
+    at: Date.now(),
+  });
+
+  next = applyAction(next, clue.consequence);
+  next = setNotice(next, clue.reveal);
+
+  if (objectId === 'family-photo') {
+    next = setFlag(next, 'serviceDoorPhotoSeen');
+    next = markObjectChanged(next, objectId);
+  }
+  if (objectId === 'behavior-sensor') next = setFlag(next, 'familyMessageContradicted');
+  return next;
+}
+
+export function markObjectInspected(state: GameState, objectId: InteractiveObjectId): GameState {
+  const objectState = getInspectedObjectState(state, objectId);
+  return {
+    ...state,
+    objectStates: {
+      ...state.objectStates,
+      [objectId]: { ...objectState, inspected: true },
+    },
+  };
+}
+
+export function triggerFlashlightEvent(state: GameState, objectId: InteractiveObjectId): GameState {
+  const reactiveObjects = new Set<InteractiveObjectId>([
+    'family-photo',
+    'service-plan',
+    'behavior-sensor',
+    'hidden-panel',
+    'blue-notebook',
+  ]);
+  if (!reactiveObjects.has(objectId)) return state;
+  const eventId = `light-${objectId}`;
+  if (state.director.flashlightEvents.includes(eventId)) return state;
+  const cue = flashlightCue(objectId);
+  let next: GameState = {
+    ...state,
+    notice: cue,
+    director: {
+      ...state.director,
+      lastLitObject: objectId,
+      cues: [...state.director.cues, cue].slice(-5),
+      flashlightEvents: [...state.director.flashlightEvents, eventId],
+    },
+  };
+
+  if (objectId === 'family-photo') {
+    next = setFlag(markObjectChanged(next, 'family-photo'), 'objectMovedAfterInspection');
+  }
+  if (objectId === 'service-plan' || objectId === 'behavior-sensor') {
+    next = setFlag(next, 'houseRepeatedAction');
+  }
+  if (objectId === 'hidden-panel' && !next.director.strongStartleUsed) {
+    next = setFlag(next, 'strongStartleUsed');
+    next = {
+      ...next,
+      director: { ...next.director, strongStartleUsed: true },
+      notice: 'El panel golpea desde adentro una sola vez. Después, silencio.',
+    };
+  }
+  return next;
 }
 
 function openingNotebook(memory: OriginMemory): NotebookLine[] {
   const lines: NotebookLine[] = [
-    { id: 'cover-question', text: 'Vine por una llave azul.' },
+    { id: 'cover-question', text: 'Vine por el cuaderno azul y la carpeta.' },
   ];
   if (memory.endings.length > 0) {
     lines.push({ id: 'after-entry', text: 'La casa se acordó de mí.' });
@@ -415,6 +520,52 @@ function pushNotebook(state: GameState, line: NotebookLine): GameState {
     ...state,
     notebook: [...state.notebook, line],
   };
+}
+
+function getInspectedObjectState(state: GameState, objectId: InteractiveObjectId): InspectedObjectState {
+  return state.objectStates[objectId] ?? {
+    inspected: false,
+    open: false,
+    changed: false,
+    discoveredClues: [],
+  };
+}
+
+function markObjectChanged(state: GameState, objectId: InteractiveObjectId): GameState {
+  const objectState = getInspectedObjectState(state, objectId);
+  return {
+    ...state,
+    objectStates: {
+      ...state.objectStates,
+      [objectId]: { ...objectState, changed: true },
+    },
+  };
+}
+
+function recordEvidence(state: GameState, evidence: NarrativeEvidence): GameState {
+  if (state.evidence.some((item) => item.id === evidence.id)) return state;
+  return {
+    ...state,
+    evidence: [...state.evidence, evidence],
+  };
+}
+
+function evidenceIcon(model: string) {
+  if (model === 'photo') return 'foto';
+  if (model === 'keys') return 'llaves';
+  if (model === 'notebook') return 'libreta';
+  if (model === 'sensor') return 'punto';
+  if (model === 'folder') return 'carpeta';
+  return 'objeto';
+}
+
+function flashlightCue(objectId: string) {
+  if (objectId === 'family-photo') return 'Cuando apartás la luz, la foto queda boca abajo.';
+  if (objectId === 'service-plan') return 'La línea borrada brilla y el golpe responde desde la pared.';
+  if (objectId === 'behavior-sensor') return 'El punto rojo parpadea con tu mismo pulso.';
+  if (objectId === 'hidden-panel') return 'Detrás del panel alguien espera a que mires otro lado.';
+  if (objectId === 'blue-notebook') return 'La tapa azul se calienta sólo dentro del haz.';
+  return 'Algo cambió fuera del haz.';
 }
 
 function travelTo(state: GameState, scene: Exclude<SceneId, 'ending'>): GameState {

@@ -26,6 +26,19 @@ export default function NotebookPanel({ state, onClose }: NotebookPanelProps) {
             <article className={styles.evidenceCard} key={card.id}>
               <span>{card.kicker}</span>
               <p>{card.text}</p>
+              <em>{card.question}</em>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {notebook.connections.length > 1 && (
+        <section className={styles.clueMap} aria-label="mapa de pistas">
+          {notebook.connections.map((node, index) => (
+            <article data-linked={node.linksTo ? 'true' : 'false'} key={node.id}>
+              <span>{index + 1}</span>
+              <strong>{node.label}</strong>
+              <p>{node.text}</p>
             </article>
           ))}
         </section>

@@ -282,6 +282,51 @@ export class AudioEngine {
     osc.stop(this.ctx.currentTime + 0.1);
   }
 
+  playDirectionalKnock(pan = 0) {
+    if (!this.ctx || !this.master) return;
+    const t = this.ctx.currentTime;
+    const panner = 'createStereoPanner' in this.ctx ? this.ctx.createStereoPanner() : null;
+    if (panner) panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), t);
+    [0, 0.18, 0.42].forEach((offset, index) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(96 - index * 13, t + offset);
+      osc.frequency.exponentialRampToValueAtTime(32, t + offset + 0.11);
+      gain.gain.setValueAtTime(0.001, t + offset);
+      gain.gain.linearRampToValueAtTime(0.18 - index * 0.04, t + offset + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.13);
+      if (panner) osc.connect(gain).connect(panner).connect(this.master!);
+      else osc.connect(gain).connect(this.master!);
+      osc.start(t + offset);
+      osc.stop(t + offset + 0.15);
+      this.activeNodes.add(osc);
+      osc.onended = () => this.activeNodes.delete(osc);
+    });
+  }
+
+  playDelayedStep(pan = 0) {
+    if (!this.ctx || !this.master || !this.noiseBuffer) return;
+    const t = this.ctx.currentTime + 0.28;
+    const panner = 'createStereoPanner' in this.ctx ? this.ctx.createStereoPanner() : null;
+    if (panner) panner.pan.setValueAtTime(Math.max(-1, Math.min(1, pan)), t);
+    const step = this.ctx.createBufferSource();
+    step.buffer = this.noiseBuffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 260;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.09, t + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    if (panner) step.connect(filter).connect(gain).connect(panner).connect(this.master);
+    else step.connect(filter).connect(gain).connect(this.master);
+    step.start(t);
+    step.stop(t + 0.2);
+    this.activeNodes.add(step);
+    step.onended = () => this.activeNodes.delete(step);
+  }
+
   // Ambient hum (fridge, fan)
   playHum(durationMs: number = 3000, freq: number = 60) {
     if (!this.ctx || !this.master) return;

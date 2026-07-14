@@ -1,6 +1,6 @@
 'use client';
 
-import { PointerEvent, useRef, useState } from 'react';
+import { PointerEvent, useEffect, useRef, useState } from 'react';
 import { requirementsMet, sceneRegistry } from '../el-origen/scenes';
 import { getObjectRecord, sceneObjects } from '../el-origen/objects';
 import { GameState, Hotspot } from '../el-origen/types';
@@ -12,6 +12,7 @@ type SceneViewProps = {
   debug: boolean;
   onHotspot: (hotspot: Hotspot) => void;
   onHoldAbandoned: () => void;
+  onLightFocus: (objectId: string) => void;
 };
 
 type HoldingState = {
@@ -20,9 +21,10 @@ type HoldingState = {
   duration: number;
 };
 
-export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAbandoned }: SceneViewProps) {
+export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAbandoned, onLightFocus }: SceneViewProps) {
   const scene = state.scene === 'ending' ? sceneRegistry.door : sceneRegistry[state.scene];
   const [pointer, setPointer] = useState({ x: 50, y: 48 });
+  const [light, setLight] = useState({ x: 47, y: 46 });
   const [holding, setHolding] = useState<HoldingState | null>(null);
   const holdTimer = useRef<number | null>(null);
   const holdCompleted = useRef(false);
@@ -35,6 +37,27 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
     });
   };
 
+  useEffect(() => {
+    let frame = 0;
+    const tick = () => {
+      setLight((current) => ({
+        x: current.x + (pointer.x - current.x) * 0.18,
+        y: current.y + (pointer.y - current.y) * 0.18,
+      }));
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [pointer.x, pointer.y]);
+
+  const litFocus = hotspots.find((hotspot) => hotspot.requiresLight && isHotspotLit(hotspot, light));
+
+  useEffect(() => {
+    if (!litFocus?.objectId) return;
+    const timer = window.setTimeout(() => onLightFocus(litFocus.objectId), 1200);
+    return () => window.clearTimeout(timer);
+  }, [litFocus?.objectId, onLightFocus]);
+
   const clearHold = (abandoned: boolean) => {
     if (holdTimer.current !== null) {
       window.clearTimeout(holdTimer.current);
@@ -45,9 +68,9 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
     holdCompleted.current = false;
   };
 
-  const startHotspot = (event: PointerEvent<HTMLButtonElement>, hotspot: Hotspot) => {
+  const startHotspot = (event: PointerEvent<HTMLButtonElement>, hotspot: Hotspot, lit: boolean) => {
     updatePointer(event);
-    if (!hotspot.holdMs) return;
+    if (!lit || !hotspot.holdMs) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     holdCompleted.current = false;
     setHolding({ id: hotspot.id, label: hotspot.verb, duration: hotspot.holdMs });
@@ -73,12 +96,14 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
 
   return (
     <section
-      className={styles.stage}
       aria-label={scene.aria}
+      className={styles.stage}
       onPointerMove={updatePointer}
       style={{
         '--lx': `${pointer.x}%`,
         '--ly': `${pointer.y}%`,
+        '--flx': `${light.x}%`,
+        '--fly': `${light.y}%`,
         '--ratio': String(ratio),
         ...backgroundStyle,
       } as React.CSSProperties}
@@ -90,43 +115,50 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
         style={{ aspectRatio: `${scene.background.width} / ${scene.background.height}` }}
       >
         <div className={styles.backdrop} />
+        <div className={styles.backdropLit} />
         <div className={styles.grain} aria-hidden="true" />
         <div className={styles.vignette} aria-hidden="true" />
         <div className={styles.flashlight} aria-hidden="true" />
 
-        {hotspots.map((hotspot) => (
-          <button
-            aria-label={`${hotspot.label}: ${hotspot.verb}`}
-            className={`${styles.hotspot} ${styles[`layer_${hotspot.layer ?? 'mid'}`]}`}
-            data-gesture={hotspot.gesture ?? 'tap'}
-            data-hotspot={hotspot.id}
-            data-object-id={hotspot.objectId}
-            key={hotspot.id}
-            onClick={() => {
-              if (!hotspot.holdMs) onHotspot(hotspot);
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return;
-              event.preventDefault();
-              clearHold(false);
-              onHotspot(hotspot);
-            }}
-            onPointerCancel={() => clearHold(true)}
-            onPointerDown={(event) => startHotspot(event, hotspot)}
-            onPointerLeave={() => clearHold(true)}
-            onPointerUp={() => clearHold(true)}
-            style={{
-              left: `${hotspot.rect.x}%`,
-              top: `${hotspot.rect.y}%`,
-              width: `${hotspot.rect.w}%`,
-              height: `${hotspot.rect.h}%`,
-            }}
-            type="button"
-          >
-            <span>{hotspot.label}</span>
-            <small>{hotspot.verb}</small>
-          </button>
-        ))}
+        {hotspots.map((hotspot) => {
+          const lit = isHotspotLit(hotspot, light);
+          return (
+            <button
+              aria-label={`${hotspot.label}: ${hotspot.verb}`}
+              className={`${styles.hotspot} ${styles[`layer_${hotspot.layer ?? 'mid'}`]}`}
+              data-gesture={hotspot.gesture ?? 'tap'}
+              data-hotspot={hotspot.id}
+              data-lit={lit ? 'true' : 'false'}
+              data-changed={state.objectStates[hotspot.objectId]?.changed ? 'true' : 'false'}
+              data-object-id={hotspot.objectId}
+              disabled={!lit}
+              key={hotspot.id}
+              onClick={() => {
+                if (lit && !hotspot.holdMs) onHotspot(hotspot);
+              }}
+              onKeyDown={(event) => {
+                if (!lit || (event.key !== 'Enter' && event.key !== ' ')) return;
+                event.preventDefault();
+                clearHold(false);
+                onHotspot(hotspot);
+              }}
+              onPointerCancel={() => clearHold(true)}
+              onPointerDown={(event) => startHotspot(event, hotspot, lit)}
+              onPointerLeave={() => clearHold(true)}
+              onPointerUp={() => clearHold(true)}
+              style={{
+                left: `${hotspot.rect.x}%`,
+                top: `${hotspot.rect.y}%`,
+                width: `${hotspot.rect.w}%`,
+                height: `${hotspot.rect.h}%`,
+              }}
+              type="button"
+            >
+              <span>{hotspot.label}</span>
+              <small>{hotspot.verb}</small>
+            </button>
+          );
+        })}
 
         {holding && (
           <div className={styles.holdCue} style={{ '--hold-ms': `${holding.duration}ms` } as React.CSSProperties}>
@@ -140,6 +172,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
             <p>
               {scene.id} · {scene.background.kind === 'image' ? scene.background.src : scene.background.style}
               {' · '}x {pointer.x.toFixed(1)} / y {pointer.y.toFixed(1)}
+              {' · '}luz {light.x.toFixed(1)} / {light.y.toFixed(1)}
               {sceneObjectWarnings.length > 0 ? ` · WARN objetos sin hotspot: ${sceneObjectWarnings.map((object) => object.id).join(', ')}` : ''}
             </p>
             {debugHotspots.map(({ hotspot, object, active, gated }) => (
@@ -166,4 +199,14 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
       </div>
     </section>
   );
+}
+
+function isHotspotLit(hotspot: Hotspot, light: { x: number; y: number }) {
+  if (!hotspot.requiresLight) return true;
+  const center = {
+    x: hotspot.rect.x + hotspot.rect.w / 2,
+    y: hotspot.rect.y + hotspot.rect.h / 2,
+  };
+  const distance = Math.hypot(center.x - light.x, (center.y - light.y) * 1.18);
+  return distance <= (hotspot.lightRadius ?? 26);
 }

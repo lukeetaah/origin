@@ -9,10 +9,13 @@ const {
   applyAction,
   canUseHotspot,
   createMemory,
+  discoverInspectionClue,
   freshGame,
   recoverFromCorruptSave,
+  triggerFlashlightEvent,
   visibleHotspots,
 } = require('../.tmp/el-origen-tests/game.js');
+const { inspectionObjects, allInspectionClues } = require('../.tmp/el-origen-tests/inspection.js');
 const { buildNotebook } = require('../.tmp/el-origen-tests/notebook.js');
 const { objectRegistry } = require('../.tmp/el-origen-tests/objects.js');
 const { sceneRegistry } = require('../.tmp/el-origen-tests/scenes.js');
@@ -97,11 +100,14 @@ test('fresh entry gives one immediate concrete goal', () => {
   const state = freshGame();
   assert.equal(state.started, false);
   assert.equal(state.scene, 'door');
-  assert.match(state.notice, /llave azul/);
+  assert.match(state.notice, /cuaderno azul/);
+  assert.match(state.notice, /carpeta/);
+  assert.match(state.notice, /22/);
 
   const entered = applyAction(state, 'enter');
   assert.equal(entered.started, true);
-  assert.match(entered.notice, /llave azul/);
+  assert.match(entered.notice, /cuaderno azul/);
+  assert.match(entered.notice, /carpeta/);
 });
 
 test('apartment door opens immediately and moves to the hallway without arbitrary key gates', () => {
@@ -155,6 +161,39 @@ test('every hotspot is backed by a registered visible object on the same asset',
     assert.ok(object.visualDescription.length > 12, `${object.id} has visual description`);
     assert.ok(object.hover.length > 1, `${object.id} has hover feedback`);
     assert.ok(object.touch.length > 1, `${object.id} has touch feedback`);
+  }
+});
+
+test('inspection system exposes six physical objects with gated clues', () => {
+  const inspectables = Object.values(inspectionObjects);
+  assert.ok(inspectables.length >= 6, 'at least six inspectable objects');
+  assert.ok(inspectables.filter((object) => object.primary).length >= 4, 'at least four primary objects');
+  assert.ok(inspectables.filter((object) => object.canOpen || object.canDisassemble).length >= 2, 'at least two openable/disassemblable objects');
+
+  const clueList = allInspectionClues();
+  assert.ok(clueList.filter((clue) => ['back', 'base', 'inside'].includes(clue.side)).length >= 3, 'reverse/base/inside clues');
+  assert.ok(clueList.filter((clue) => clue.requiresLight).length >= 2, 'light-gated clues');
+
+  for (const object of inspectables) {
+    assert.ok(object.initialObservation.length > 20, `${object.id} has first observation`);
+    assert.ok(object.afterClueObservation.length > 20, `${object.id} has clue observation`);
+    assert.ok(object.clues.length >= 1, `${object.id} has at least one clue`);
+    for (const clue of object.clues) {
+      assert.ok(clue.fact.split(/\s+/).length <= 18, `${object.id}/${clue.id} fact is short`);
+      assert.ok(clue.question.endsWith('?'), `${object.id}/${clue.id} keeps an open question`);
+    }
+  }
+});
+
+test('scene hotspots require flashlight for inspectable narrative objects', () => {
+  const inspectableIds = new Set(Object.keys(inspectionObjects));
+  for (const scene of Object.values(sceneRegistry)) {
+    for (const hotspot of scene.hotspots) {
+      if (!hotspot.inspectable) continue;
+      assert.ok(inspectableIds.has(hotspot.inspectable), `${hotspot.id} references inspectable object`);
+      assert.equal(hotspot.requiresLight, true, `${hotspot.id} is gated by flashlight`);
+      assert.ok(typeof hotspot.lightRadius === 'number' && hotspot.lightRadius >= 28, `${hotspot.id} has forgiving light radius`);
+    }
   }
 });
 
@@ -238,6 +277,63 @@ test('the notebook is a quick reminder plus optional archive, not required readi
   assert.ok(notebook.cards.some((card) => card.id === 'notebook'));
   assert.ok(notebook.mutations.some((line) => /desgaste/.test(line)));
   assert.ok(notebook.sections.every((section) => Array.isArray(section.lines)), 'archive sections are optional');
+});
+
+test('inspection clues, not first clicks, create evidence and progress', () => {
+  let state = start();
+  state = discoverInspectionClue(state, 'administrator-envelope', 'deadline-back');
+  assert.equal(state.flags.envelopeRead, true);
+  assert.ok(state.evidence.some((item) => item.clueId === 'deadline-back'));
+  assert.match(state.notice, /hora|papel|22/i);
+
+  state = applyAction(state, 'openApartmentDoor');
+  state = applyAction(state, 'travelKitchen');
+  state = discoverInspectionClue(state, 'kitchen-folder', 'sale-before-diagnosis');
+  assert.equal(state.flags.folderFound, true);
+  assert.ok(state.evidence.some((item) => item.objectId === 'kitchen-folder'));
+
+  state = applyAction(state, 'checkFridge');
+  state = applyAction(state, 'loosenTile');
+  state = discoverInspectionClue(state, 'blue-notebook', 'protocol-inside');
+  assert.equal(state.flags.notebookFound, true);
+  assert.equal(state.carrying, 'notebook');
+
+  const notebook = buildNotebook(state);
+  assert.ok(notebook.cards.length <= 5);
+  assert.ok(notebook.connections.length <= 5);
+  assert.ok(notebook.cards.some((card) => /abuela|intrusiones|oferta/i.test(card.text)));
+});
+
+test('flashlight focus can change the house without awarding unrelated facts', () => {
+  let state = reachNotebook();
+  const beforeFacts = state.facts.length;
+  const beforeNotice = state.notice;
+  const inert = triggerFlashlightEvent(state, 'administrator-envelope');
+  assert.equal(inert.notice, beforeNotice);
+  assert.equal(inert.director.flashlightEvents.length, state.director.flashlightEvents.length);
+
+  state = triggerFlashlightEvent(state, 'family-photo');
+  assert.equal(state.flags.objectMovedAfterInspection, true);
+  assert.equal(state.objectStates['family-photo'].changed, true);
+  assert.equal(state.facts.length, beforeFacts);
+
+  state = triggerFlashlightEvent(state, 'family-photo');
+  const repeated = state.director.flashlightEvents.filter((event) => event === 'light-family-photo');
+  assert.equal(repeated.length, 1);
+});
+
+test('the strong startle is earned by flashlight focus on the opened route and only fires once', () => {
+  let state = reachTruth();
+  assert.equal(state.flags.strongStartleUsed, undefined);
+  state = triggerFlashlightEvent(state, 'hidden-panel');
+  assert.equal(state.flags.strongStartleUsed, true);
+  assert.equal(state.director.strongStartleUsed, true);
+  assert.match(state.notice, /panel golpea/);
+
+  const notice = state.notice;
+  state = triggerFlashlightEvent(state, 'hidden-panel');
+  assert.equal(state.notice, notice);
+  assert.equal(state.director.flashlightEvents.filter((event) => event === 'light-hidden-panel').length, 1);
 });
 
 test('behavioral profile and hidden panel are gated by material evidence', () => {
@@ -349,4 +445,32 @@ test('visible EL ORIGEN content is not contaminated by retired identities, brand
   ].join('\n');
 
   assert.doesNotMatch(surface, banned);
+});
+
+test('object descriptions are concrete and not accidentally duplicated', () => {
+  const bannedGeneric = /(parece haber sido sacada acá|hay algo extraño|esto podría ser importante|me resulta familiar|no recuerdo esto|la casa parece distinta)/i;
+  const descriptions = [
+    ...Object.values(objectRegistry).map((object) => object.visualDescription),
+    ...Object.values(inspectionObjects).flatMap((object) => [
+      object.initialObservation,
+      object.afterClueObservation,
+      object.changedObservation ?? '',
+      ...object.clues.flatMap((clue) => [clue.fact, clue.reveal]),
+    ]),
+  ].filter(Boolean);
+
+  const normalized = descriptions.map((text) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim());
+  assert.equal(new Set(normalized).size, normalized.length, 'no identical object descriptions');
+  for (const text of descriptions) {
+    assert.doesNotMatch(text, bannedGeneric);
+    assert.ok(text.split(/\s+/).length <= 35, `mandatory object text too long: ${text}`);
+  }
+});
+
+test('Vercel remains a Next app build and does not target static out', () => {
+  const nextConfig = fs.readFileSync(path.join(process.cwd(), 'next.config.ts'), 'utf8');
+  const vercel = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));
+  assert.doesNotMatch(nextConfig, /output:\s*['"]export['"]/);
+  assert.equal(vercel.framework, 'nextjs');
+  assert.equal(vercel.outputDirectory, '.next');
 });

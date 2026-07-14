@@ -3,10 +3,12 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AudioEngine } from '../audio/audioEngine';
-import { abandonHeldAction, applyAction, canUseHotspot, visibleHotspots } from '../el-origen/game';
+import { abandonHeldAction, applyAction, canUseHotspot, discoverInspectionClue, markObjectInspected, triggerFlashlightEvent, visibleHotspots } from '../el-origen/game';
 import { observeVisibility } from '../el-origen/director';
 import { clearCurrentSaveForDevelopment, hasValidStoredGame, isolateOldSaves, loadStoredGame, saveStoredGame } from '../el-origen/persistence';
+import { getInspectableObject } from '../el-origen/inspection';
 import { ActionId, GameState, Hotspot } from '../el-origen/types';
+import InspectionViewer from './InspectionViewer';
 import NotebookPanel from './NotebookPanel';
 import SceneView from './SceneView';
 import styles from '../styles/elOrigen.module.css';
@@ -22,6 +24,7 @@ export default function Experience() {
   const [volume, setVolume] = useState(0.42);
   const [hasContinue, setHasContinue] = useState(false);
   const [coverOpen, setCoverOpen] = useState(true);
+  const [inspectionId, setInspectionId] = useState<string | null>(null);
   const audioRef = useRef<AudioEngine | null>(null);
   const stateRef = useRef<GameState | null>(null);
 
@@ -64,6 +67,7 @@ export default function Experience() {
   }, [volume]);
 
   const hotspots = useMemo(() => (state ? visibleHotspots(state) : []), [state]);
+  const inspectionObject = inspectionId ? getInspectableObject(inspectionId) : undefined;
 
   const audio = async () => {
     if (!audioRef.current) audioRef.current = new AudioEngine();
@@ -107,6 +111,12 @@ export default function Experience() {
         void audio().then((engine) => engine.playLocked()).catch(() => {});
         return;
       }
+      if (hotspot.inspectable) {
+        commit(markObjectInspected(current, hotspot.inspectable));
+        setInspectionId(hotspot.inspectable);
+        playFor(hotspot, action);
+        return;
+      }
     }
 
     commit(applyAction(current, action));
@@ -119,6 +129,31 @@ export default function Experience() {
     const current = stateRef.current ?? state;
     if (!current) return;
     commit(abandonHeldAction(current));
+  };
+
+  const discoverClue = (objectId: string, clueId: string) => {
+    const current = stateRef.current ?? state;
+    if (!current) return;
+    const saved = commit(discoverInspectionClue(current, objectId, clueId));
+    void audio().then((engine) => {
+      engine.playMemoryUnlock();
+      if (saved.flags.strongStartleUsed) engine.playDoorSlam();
+    }).catch(() => {});
+  };
+
+  const reactToLight = (objectId: string) => {
+    const current = stateRef.current ?? state;
+    if (!current) return;
+    const before = current.director.flashlightEvents.length;
+    const saved = commit(triggerFlashlightEvent(current, objectId));
+    if (saved.director.flashlightEvents.length === before) return;
+    void audio().then((engine) => {
+      if (objectId === 'hidden-panel') engine.playDoorSlam();
+      else if (objectId === 'service-plan') engine.playDirectionalKnock(-0.65);
+      else if (objectId === 'behavior-sensor') engine.playIntercom();
+      else if (objectId === 'family-photo') engine.playDelayedStep(0.55);
+      else engine.playWoodTap();
+    }).catch(() => {});
   };
 
   if (!state) {
@@ -154,6 +189,7 @@ export default function Experience() {
         <section className={styles.coverCard} aria-label="Portada">
           <p className={styles.paperKicker}>casa de la abuela</p>
           <h1>EL ORIGEN</h1>
+          <p className={styles.coverBrief}>Volvés por el cuaderno azul y una carpeta. La inmobiliaria llega a las 22.</p>
           <button onClick={() => runAction('enter')} type="button">{enterLabel}</button>
           {hasContinue && <button className={styles.secondaryButton} onClick={() => runAction('continue')} type="button">Continuar</button>}
         </section>
@@ -168,11 +204,12 @@ export default function Experience() {
         hotspots={hotspots}
         onHoldAbandoned={abandonHold}
         onHotspot={(hotspot) => runAction(hotspot.action, hotspot)}
+        onLightFocus={reactToLight}
         state={state}
       />
 
       <aside className={styles.caseNote} aria-label="orden de trabajo">
-        <p className={styles.paperKicker}>{state.scene}</p>
+        <p className={styles.paperKicker}>orden breve</p>
         <h2>{objectiveFor(state).primary}</h2>
         {objectiveFor(state).secondary && <p className={styles.secondaryObjective}>{objectiveFor(state).secondary}</p>}
       </aside>
@@ -228,14 +265,22 @@ export default function Experience() {
       )}
 
       {notebookOpen && <NotebookPanel state={state} onClose={() => setNotebookOpen(false)} />}
+      {inspectionObject && (
+        <InspectionViewer
+          object={inspectionObject}
+          onClose={() => setInspectionId(null)}
+          onDiscover={discoverClue}
+          state={state}
+        />
+      )}
     </main>
   );
 }
 
 function objectiveFor(state: GameState) {
   if (!state.flags.envelopeRead) return { primary: 'Leé el sobre.', secondary: 'Está bajo la puerta.' };
-  if (!state.flags.doorOpened) return { primary: 'Entrá a la casa.', secondary: 'Buscá la llave azul.' };
-  if (!state.flags.folderFound && !state.flags.keyringSeen) return { primary: 'Buscá la llave azul.', secondary: 'Revisá el dormitorio.' };
+  if (!state.flags.doorOpened) return { primary: 'Entrá a la casa.', secondary: 'Buscá cuaderno y carpeta.' };
+  if (!state.flags.folderFound && !state.flags.notebookFound) return { primary: 'Buscá cuaderno y carpeta.', secondary: 'La casa está casi vacía.' };
   if (!state.flags.folderFound) return { primary: 'Abrí una carpeta.', secondary: 'Cocina o dormitorio.' };
   if (!state.flags.fridgeChecked) return { primary: 'Abrí la heladera.', secondary: 'No huele a abandono.' };
   if (!state.flags.notebookFound) return { primary: 'Buscá detrás del azulejo.', secondary: 'La carpeta marcó una pared.' };
