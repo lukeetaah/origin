@@ -467,6 +467,17 @@ test('object descriptions are concrete and not accidentally duplicated', () => {
   }
 });
 
+test('inspection interface stays 2D, readable and free of broken WebGL dependencies', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+  const viewer = fs.readFileSync(path.join(process.cwd(), 'src/origin/components/InspectionViewer.tsx'), 'utf8');
+  const styles = fs.readFileSync(path.join(process.cwd(), 'src/origin/styles/elOrigen.module.css'), 'utf8');
+  const dependencies = Object.keys(pkg.dependencies ?? {});
+
+  assert.ok(!dependencies.some((name) => name === 'three' || name.startsWith('@react-three/')), 'no three.js runtime dependency');
+  assert.doesNotMatch(viewer, /Canvas|WebGL|webgl|react-three|three/i);
+  assert.doesNotMatch(styles, /perspective\(|rotateX|rotateY|inspectionCanvas/);
+});
+
 test('Vercel remains a Next app build and does not target static out', () => {
   const nextConfig = fs.readFileSync(path.join(process.cwd(), 'next.config.ts'), 'utf8');
   const vercel = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'vercel.json'), 'utf8'));

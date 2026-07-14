@@ -805,7 +805,7 @@
   right: -5%;
   bottom: -12%;
   height: 38%;
-  transform: perspective(620px) rotateX(64deg);
+  transform: skewX(-4deg);
   background:
     linear-gradient(90deg, rgba(255, 255, 255, .08) 1px, transparent 1px) 0 0 / 5rem 100%,
     linear-gradient(rgba(255, 255, 255, .08) 1px, transparent 1px) 0 0 / 100% 5rem,
@@ -997,7 +997,7 @@
 .photoArtifact {
   aspect-ratio: 1.45;
   border: 1px solid rgba(24, 18, 9, .45);
-  transform: perspective(900px) rotateX(7deg) rotateZ(-1.5deg);
+  transform: rotate(-1.5deg);
 }
 
 .paperArtifact {
@@ -1048,16 +1048,16 @@
 }
 
 .inspectedObject[data-side="back"] {
-  transform: perspective(900px) rotateX(5deg) rotateY(16deg) rotateZ(1deg);
+  transform: rotate(1deg);
 }
 
 .inspectedObject[data-side="base"] {
-  transform: perspective(900px) rotateX(52deg) rotateZ(-1deg);
+  transform: translateY(.35rem) rotate(-1deg);
 }
 
 .inspectedObject[data-side="inside"],
 .inspectedObject[data-open="true"] {
-  transform: perspective(900px) rotateX(10deg) rotateY(-8deg) rotateZ(-.6deg);
+  transform: rotate(-.6deg);
 }
 
 .objectFold {
