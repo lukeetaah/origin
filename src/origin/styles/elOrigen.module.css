@@ -888,7 +888,7 @@
 .inspectionOverlay {
   position: fixed;
   inset: 0;
-  z-index: 140;
+  z-index: 4000;
   color: #f5edcf;
   font-family: Georgia, 'Times New Roman', serif;
 }
@@ -900,22 +900,19 @@
 }
 
 .inspectionOverlay {
-  overflow: hidden;
-  touch-action: none;
-  cursor: grab;
-}
-
-.inspectionOverlay:active {
-  cursor: grabbing;
+  overflow: auto;
+  min-height: 100dvh;
+  background: #020302;
+  cursor: default;
 }
 
 .inspectionBackdrop {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), rgba(232, 205, 132, .1), transparent 18rem),
-    rgba(0, 0, 0, .78);
-  backdrop-filter: blur(9px) brightness(.48);
+    radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), rgba(232, 205, 132, .15), transparent 20rem),
+    linear-gradient(115deg, rgba(35, 28, 13, .46), rgba(0, 0, 0, .94) 45%, rgba(0, 0, 0, .98));
+  backdrop-filter: blur(6px) brightness(.42);
 }
 
 .inspectionLight {
@@ -923,31 +920,33 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), rgba(255, 235, 174, .22), rgba(255, 223, 139, .06) 11rem, transparent 24rem);
+    radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), rgba(255, 235, 174, .3), rgba(255, 223, 139, .08) 10rem, transparent 28rem);
   mix-blend-mode: screen;
 }
 
-.inspectionCanvas {
-  position: absolute;
-  inset: min(7vh, 5rem) min(14vw, 13rem);
-  border: 1px solid rgba(226, 205, 132, .22);
-  background: radial-gradient(circle at 50% 50%, rgba(22, 24, 16, .9), rgba(0, 0, 0, .96));
-  box-shadow: 0 2rem 7rem rgba(0, 0, 0, .76);
+.inspectionLayout {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(15rem, 22rem) minmax(22rem, 1fr) minmax(17rem, 25rem);
+  gap: clamp(1rem, 2.5vw, 2rem);
+  min-height: calc(100dvh - 8rem);
+  padding: clamp(1rem, 3vw, 2.4rem) clamp(1rem, 3vw, 2.8rem) 8.5rem;
+  align-items: center;
 }
 
 .inspectionBrief {
-  position: absolute;
-  left: clamp(1rem, 3vw, 2.2rem);
-  top: clamp(1rem, 4vh, 2rem);
-  z-index: 4;
-  width: min(24rem, calc(100vw - 2rem));
-  padding: .9rem 1rem;
+  align-self: start;
+  margin-top: clamp(.25rem, 4vh, 2rem);
+  padding: 1rem 1.1rem;
   border-left: 2px solid rgba(226, 205, 132, .68);
-  background: rgba(6, 9, 5, .68);
+  background: rgba(6, 9, 5, .78);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .35);
 }
 
 .inspectionBrief h2 {
   margin: 0 0 .45rem;
+  font-size: clamp(1.5rem, 2.4vw, 2.35rem);
 }
 
 .inspectionBrief p,
@@ -963,10 +962,183 @@
   font: 700 .72rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 
-.closeInspection,
-.inspectToggle {
+.inspectionStage {
+  position: relative;
+  display: grid;
+  min-height: min(58vh, 36rem);
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2.2rem);
+  border: 1px solid rgba(226, 205, 132, .22);
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(57, 50, 26, .5), transparent 45%),
+    linear-gradient(180deg, rgba(7, 10, 6, .88), rgba(0, 0, 0, .95));
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 199, .03), 0 2rem 7rem rgba(0, 0, 0, .72);
+}
+
+.inspectedObject {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(31rem, 48vw);
+  min-height: 15rem;
+  isolation: isolate;
+  color: rgba(29, 23, 12, .82);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font: 800 .78rem/1.1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  filter: drop-shadow(0 2rem 2.8rem rgba(0, 0, 0, .75));
+  transition: transform .22s ease, background .22s ease;
+}
+
+.paperArtifact,
+.folderArtifact,
+.notebookArtifact,
+.photoArtifact {
+  aspect-ratio: 1.45;
+  border: 1px solid rgba(24, 18, 9, .45);
+  transform: perspective(900px) rotateX(7deg) rotateZ(-1.5deg);
+}
+
+.paperArtifact {
+  background:
+    linear-gradient(90deg, transparent 49.4%, rgba(42, 29, 10, .24) 50%, transparent 50.6%),
+    repeating-linear-gradient(0deg, rgba(70, 54, 28, .12) 0 1px, transparent 1px 18px),
+    linear-gradient(135deg, #d8c792, #927b42);
+}
+
+.folderArtifact {
+  background:
+    linear-gradient(90deg, rgba(64, 43, 16, .22), transparent 46%, rgba(20, 13, 5, .24) 50%, transparent 55%),
+    linear-gradient(135deg, #b79d56, #72591f);
+}
+
+.notebookArtifact {
+  color: rgba(227, 235, 240, .85);
+  background:
+    linear-gradient(90deg, transparent 49%, rgba(2, 8, 20, .5) 50%, transparent 51%),
+    radial-gradient(circle at 74% 24%, rgba(132, 170, 220, .2), transparent 18%),
+    linear-gradient(135deg, #1b3e70, #071831);
+}
+
+.photoArtifact {
+  background:
+    linear-gradient(90deg, rgba(35, 25, 10, .22), transparent 46%, rgba(18, 12, 5, .18) 50%, transparent 54%),
+    linear-gradient(135deg, #e6d7ac, #856f42);
+}
+
+.keysArtifact {
+  min-height: 18rem;
+  color: rgba(244, 235, 196, .88);
+  background:
+    radial-gradient(circle at 32% 32%, transparent 0 2.1rem, rgba(197, 183, 126, .95) 2.18rem 2.55rem, transparent 2.62rem),
+    linear-gradient(80deg, transparent 0 38%, rgba(184, 170, 113, .95) 39% 43%, transparent 44%),
+    linear-gradient(100deg, transparent 0 48%, rgba(184, 170, 113, .95) 49% 53%, transparent 54%);
+}
+
+.sensorArtifact {
+  width: min(22rem, 42vw);
+  min-height: 14rem;
+  color: rgba(248, 222, 190, .9);
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at 68% 34%, #f34c39 0 .5rem, rgba(111, 14, 8, .9) .55rem .78rem, transparent .82rem),
+    linear-gradient(135deg, #2d332b, #10140f);
+  border: 1px solid rgba(198, 184, 132, .2);
+}
+
+.inspectedObject[data-side="back"] {
+  transform: perspective(900px) rotateX(5deg) rotateY(16deg) rotateZ(1deg);
+}
+
+.inspectedObject[data-side="base"] {
+  transform: perspective(900px) rotateX(52deg) rotateZ(-1deg);
+}
+
+.inspectedObject[data-side="inside"],
+.inspectedObject[data-open="true"] {
+  transform: perspective(900px) rotateX(10deg) rotateY(-8deg) rotateZ(-.6deg);
+}
+
+.objectFold {
   position: absolute;
-  z-index: 6;
+  inset: 8% 49.5%;
+  z-index: 2;
+  background: rgba(37, 24, 9, .38);
+  box-shadow: 0 0 1.2rem rgba(0, 0, 0, .35);
+}
+
+.objectSeal {
+  position: absolute;
+  right: 14%;
+  top: 16%;
+  width: 2.8rem;
+  height: .75rem;
+  border: 1px solid rgba(35, 22, 8, .25);
+  background: rgba(246, 233, 189, .3);
+  rotate: -8deg;
+}
+
+.objectMark {
+  position: relative;
+  z-index: 3;
+  max-width: 70%;
+  padding: .5rem .65rem;
+  border: 1px solid rgba(255, 246, 202, .22);
+  background: rgba(255, 244, 199, .18);
+  color: inherit;
+}
+
+.cluePanel {
+  align-self: stretch;
+  display: grid;
+  align-content: center;
+  gap: .9rem;
+  padding: 1rem;
+  border: 1px solid rgba(181, 231, 198, .22);
+  background: rgba(4, 11, 7, .76);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, .35);
+}
+
+.inspectionEvidence,
+.inspectionHint {
+  padding: 1rem;
+  border-left: 2px solid rgba(181, 231, 198, .82);
+  background: rgba(0, 0, 0, .32);
+}
+
+.inspectionEvidence strong,
+.inspectionHint strong {
+  display: block;
+  margin-bottom: .5rem;
+  color: #fff4cf;
+}
+
+.inspectionEvidence p,
+.inspectionHint p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.inspectionEvidence em {
+  display: block;
+  margin-top: .75rem;
+  color: #bfe1c8;
+  font-style: normal;
+}
+
+.foundClues {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: .86rem;
+  color: #d8cfa7;
+}
+
+.closeInspection {
+  position: fixed;
+  z-index: 4020;
+  right: max(1rem, env(safe-area-inset-right));
+  top: max(1rem, env(safe-area-inset-top));
   border: 1px solid rgba(232, 211, 141, .72);
   background: rgba(7, 10, 6, .82);
   color: #fff2bd;
@@ -975,20 +1147,15 @@
   cursor: pointer;
 }
 
-.closeInspection {
-  right: 1rem;
-  top: 1rem;
-}
-
 .inspectToggle {
-  right: 1rem;
-  bottom: 4.6rem;
+  border-color: rgba(181, 231, 198, .65);
+  color: #d7f1dc;
 }
 
 .clueFlash {
   position: absolute;
   left: 50%;
-  bottom: 5rem;
+  bottom: 1.5rem;
   z-index: 7;
   width: min(34rem, calc(100vw - 2rem));
   translate: -50% 0;
@@ -998,31 +1165,60 @@
   box-shadow: 0 1.2rem 4rem rgba(0, 0, 0, .5);
 }
 
-.inspectionTelemetry {
-  position: absolute;
+.inspectionControls {
+  position: fixed;
   left: 50%;
-  bottom: 1rem;
-  z-index: 6;
+  right: auto;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 4010;
   display: flex;
-  gap: .5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .65rem;
+  width: min(82rem, calc(100vw - 2rem));
   translate: -50% 0;
-  font: 700 .68rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
-  letter-spacing: .08em;
+  padding: .8rem;
+  border: 1px solid rgba(226, 205, 132, .28);
+  background: rgba(2, 4, 2, .88);
+  box-shadow: 0 1rem 4rem rgba(0, 0, 0, .6);
+}
+
+.inspectionControls div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+}
+
+.inspectionControls span {
+  color: #bcd8c4;
+  font: 800 .62rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .12em;
   text-transform: uppercase;
 }
 
-.inspectionTelemetry span {
-  padding: .45rem .55rem;
+.inspectionControls button,
+.inspectToggle {
+  min-height: 2.35rem;
+  padding: .5rem .7rem;
   border: 1px solid rgba(226, 205, 132, .35);
-  background: rgba(0, 0, 0, .55);
+  background: rgba(8, 10, 6, .8);
+  color: #fff2bd;
+  cursor: pointer;
 }
 
-.inspectionFallback {
-  display: grid;
-  place-items: center;
-  height: 100%;
-  padding: 2rem;
-  text-align: center;
+.inspectionControls button:hover,
+.closeInspection:hover,
+.activeInspectionControl {
+  border-color: rgba(255, 241, 181, .9);
+  background: rgba(220, 197, 119, .18);
+}
+
+.inspectionProgress {
+  margin-left: auto;
+  white-space: nowrap;
+  color: #fff4cf !important;
 }
 
 @media (max-width: 700px) {
@@ -1051,13 +1247,34 @@
     height: .85rem;
   }
 
-  .inspectionCanvas {
-    inset: 11rem .75rem 5.2rem;
+  .inspectionLayout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding: 4.5rem .8rem 13rem;
   }
 
   .inspectionBrief {
-    right: .75rem;
-    width: auto;
+    margin-top: 0;
+  }
+
+  .inspectionStage {
+    min-height: 18rem;
+  }
+
+  .inspectedObject,
+  .sensorArtifact {
+    width: min(18rem, 82vw);
+  }
+
+  .inspectionControls {
+    align-items: stretch;
+    justify-content: flex-start;
+    max-height: 11.5rem;
+    overflow: auto;
+  }
+
+  .inspectionProgress {
+    margin-left: 0;
   }
 
   .clueMap {

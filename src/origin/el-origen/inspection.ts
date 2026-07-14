@@ -8,9 +8,8 @@ export const inspectionObjects = {
     scene: 'door',
     model: 'document',
     primary: true,
-    canOpen: true,
     material: 'paper',
-    instruction: 'Arrastrá para girar. Rueda para acercar. Iluminá el reverso.',
+    instruction: 'Usá mirar: dorso y después linterna: arriba.',
     initialObservation: 'El sobre está cerrado con cinta nueva. No parece haber pasado días bajo la puerta.',
     afterClueObservation: 'El reverso fija una hora de llegada. Esto no era un favor casual.',
     clues: [
@@ -25,7 +24,7 @@ export const inspectionObjects = {
     model: 'photo',
     primary: true,
     material: 'paper',
-    instruction: 'Girarla importa más que leerla. El vidrio devuelve detalles.',
+    instruction: 'Probá frente, dorso y luz de costado.',
     initialObservation: 'Una comida familiar en el pasillo. La puerta de servicio queda abierta detrás de todos.',
     afterClueObservation: 'El reverso dice que fue tomada después de la supuesta última visita.',
     changedObservation: 'Cuando volvés al pasillo, la foto queda boca abajo.',
@@ -43,7 +42,7 @@ export const inspectionObjects = {
     primary: true,
     canOpen: true,
     material: 'cardboard',
-    instruction: 'Abrí la tapa y mirá el pliegue interior.',
+    instruction: 'Abrí el objeto y revisá el interior.',
     initialObservation: 'La carpeta mezcla tasación, recibos y borradores de venta. Todo está demasiado ordenado.',
     afterClueObservation: 'La oferta baja fue preparada antes de que la abuela dejara de vivir acá.',
     clues: [
@@ -58,7 +57,7 @@ export const inspectionObjects = {
     model: 'keys',
     primary: true,
     material: 'metal',
-    instruction: 'Rotá las llaves hasta ver la etiqueta cortada.',
+    instruction: 'Revisá la base de las llaves con la linterna abajo.',
     initialObservation: 'Gas, terraza, vecina, ropero. Falta la llave azul que todos nombran.',
     afterClueObservation: 'Una etiqueta fue arrancada con fuerza. La marca coincide con la puerta de servicio.',
     clues: [
@@ -74,7 +73,7 @@ export const inspectionObjects = {
     primary: true,
     canOpen: true,
     material: 'cloth',
-    instruction: 'Abrí la tapa. Algunas marcas sólo aparecen con la luz rasante.',
+    instruction: 'Abrí la tapa y después probá dorso con luz al centro.',
     initialObservation: 'La tela azul está tibia, como si hubiera estado contra una pared viva.',
     afterClueObservation: 'No es diario: es un mapa de manipulación doméstica.',
     clues: [
@@ -91,7 +90,7 @@ export const inspectionObjects = {
     primary: true,
     canOpen: true,
     material: 'paper',
-    instruction: 'Desplegá el plano y buscá líneas que no coinciden.',
+    instruction: 'Abrí el plano y revisá el recorrido interior.',
     initialObservation: 'El plano fue pegado bajo pintura fresca. Alguien quiso ocultar la distribución real.',
     afterClueObservation: 'El acceso de servicio no figura, pero está medido a mano.',
     clues: [
@@ -107,7 +106,7 @@ export const inspectionObjects = {
     primary: true,
     canDisassemble: true,
     material: 'plastic',
-    instruction: 'Giralo. La base tiene una etiqueta térmica.',
+    instruction: 'Revisá la base con luz abajo.',
     initialObservation: 'No parece eléctrico de la casa. Está pegado con cinta nueva sobre caños viejos.',
     afterClueObservation: 'Registra demora, recorridos repetidos y decisiones. La casa también te mide.',
     clues: [
@@ -123,7 +122,7 @@ export const inspectionObjects = {
     primary: true,
     canOpen: true,
     material: 'cardboard',
-    instruction: 'Abrí el anexo y mirá el margen derecho.',
+    instruction: 'Abrí el anexo y mové la luz a la derecha.',
     initialObservation: 'El precio está escrito con birome reciente. No coincide con los metros ni con los arreglos.',
     afterClueObservation: 'El anexo baja el precio si aceptás la versión de abandono.',
     clues: [
