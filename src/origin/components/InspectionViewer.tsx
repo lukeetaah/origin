@@ -55,8 +55,9 @@ const lightPoints: Record<LightZone, { x: string; y: string }> = {
 
 export default function InspectionViewer({ object, state, onClose, onDiscover }: InspectionViewerProps) {
   const rememberedOpen = Boolean(state.objectStates[object.objectId]?.open);
-  const [side, setSide] = useState<InspectionSide>(() => visibleSidesFor(object, rememberedOpen)[0] ?? 'front');
-  const [lightZone, setLightZone] = useState<LightZone>('center');
+  const initialInspection = initialInspectionFor(object, rememberedOpen);
+  const [side, setSide] = useState<InspectionSide>(() => initialInspection.side);
+  const [lightZone, setLightZone] = useState<LightZone>(() => initialInspection.lightZone);
   const [open, setOpen] = useState(rememberedOpen);
   const [flash, setFlash] = useState<string | null>(null);
   const [feedback, setFeedback] = useState(object.initialObservation);
@@ -140,7 +141,12 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
       return;
     }
 
-    const status = probeStatus(probe, discovered, open, lightZone);
+    const effectiveLight = probe.clue.requiresLight ? (probe.clue.lightZone ?? lightZone) : lightZone;
+    if (probe.clue.requiresLight && probe.clue.lightZone && probe.clue.lightZone !== lightZone) {
+      setLightZone(probe.clue.lightZone);
+    }
+
+    const status = probeStatus(probe, discovered, open, effectiveLight);
     if (status === 'found') {
       setFeedback(`${probe.clue.title}: ${probe.clue.fact}`);
       return;
@@ -276,6 +282,18 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
             </div>
           </div>
           <p className={styles.workbenchFeedback}>{feedback}</p>
+          <div className={styles.inspectionActions} aria-label="acciones contextuales">
+            {(object.canOpen || object.canDisassemble) && (
+              <button className={styles.inspectPrimaryAction} onClick={toggleOpen} type="button">
+                {open ? 'cerrar' : object.canDisassemble ? 'desarmar' : object.model === 'folder' ? 'abrir expediente' : 'abrir'}
+              </button>
+            )}
+            {readyProbe && (
+              <button className={styles.inspectPrimaryAction} onClick={() => inspectProbe(readyProbe)} type="button">
+                tocar marca iluminada
+              </button>
+            )}
+          </div>
           {flash && <p className={styles.clueFlash}>{flash}</p>}
         </main>
 
@@ -308,47 +326,40 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
         </aside>
       </div>
 
-      <footer className={styles.inspectionControls} aria-label="controles de inspección">
-        <div>
-          <span>atajos</span>
-          {availableSides.map((candidate) => (
-            <button
-              aria-pressed={candidate === side}
-              className={candidate === side ? styles.activeInspectionControl : undefined}
-              key={candidate}
-              onClick={() => changeSide(candidate)}
-              type="button"
-            >
-              {sideLabels[candidate]}
-            </button>
-          ))}
-        </div>
-        <div>
-          <span>enfocar</span>
-          {(Object.keys(lightLabels) as LightZone[]).map((candidate) => (
-            <button
-              aria-pressed={candidate === lightZone}
-              className={candidate === lightZone ? styles.activeInspectionControl : undefined}
-              key={candidate}
-              onClick={() => moveLight(candidate)}
-              type="button"
-            >
-              {lightLabels[candidate]}
-            </button>
-          ))}
-        </div>
-        {(object.canOpen || object.canDisassemble) && (
-          <button className={styles.inspectToggle} onClick={toggleOpen} type="button">
-            {open ? 'cerrar' : object.canDisassemble ? 'desarmar' : object.model === 'folder' ? 'abrir expediente' : 'abrir'}
-          </button>
-        )}
-        {readyProbe && (
-          <button className={styles.inspectToggle} onClick={() => inspectProbe(readyProbe)} type="button">
-            examinar marca
-          </button>
-        )}
-        <span className={styles.inspectionProgress}>{visibleClues.length} de {object.clues.length} pistas</span>
-      </footer>
+      <details className={styles.inspectionHelp}>
+        <summary>atajos · {visibleClues.length}/{object.clues.length}</summary>
+        <footer className={styles.inspectionControls} aria-label="controles de inspección">
+          <div>
+            <span>vista</span>
+            {availableSides.map((candidate) => (
+              <button
+                aria-pressed={candidate === side}
+                className={candidate === side ? styles.activeInspectionControl : undefined}
+                key={candidate}
+                onClick={() => changeSide(candidate)}
+                type="button"
+              >
+                {sideLabels[candidate]}
+              </button>
+            ))}
+          </div>
+          <div>
+            <span>luz</span>
+            {(Object.keys(lightLabels) as LightZone[]).map((candidate) => (
+              <button
+                aria-pressed={candidate === lightZone}
+                className={candidate === lightZone ? styles.activeInspectionControl : undefined}
+                key={candidate}
+                onClick={() => moveLight(candidate)}
+                type="button"
+              >
+                {lightLabels[candidate]}
+              </button>
+            ))}
+          </div>
+          <span className={styles.inspectionProgress}>{visibleClues.length} de {object.clues.length} pistas</span>
+        </footer>
+      </details>
     </section>
   );
 }
@@ -367,6 +378,18 @@ function visibleSidesFor(object: InspectableObject, open: boolean) {
     const insideRequiresOpen = object.clues.some((clue) => clue.side === 'inside' && clue.requiresOpen);
     return open || !insideRequiresOpen;
   });
+}
+
+function initialInspectionFor(object: InspectableObject, open: boolean): { side: InspectionSide; lightZone: LightZone } {
+  const availableSides = visibleSidesFor(object, open);
+  const firstReadableClue = object.clues.find((clue) => (
+    availableSides.includes(clue.side) && (!clue.requiresOpen || open)
+  ));
+
+  return {
+    side: firstReadableClue?.side ?? availableSides[0] ?? 'front',
+    lightZone: firstReadableClue?.lightZone ?? 'center',
+  };
 }
 
 function lightZoneFromPoint(x: number, y: number): LightZone {
@@ -398,6 +421,7 @@ function sideFromGesture(
 }
 
 function gestureHintFor(object: InspectableObject) {
+  if (object.model === 'document') return 'La marca importante ya está a la vista. Tocá el brillo: la luz acompaña sola.';
   if (object.model === 'folder') return 'Arrastrá el expediente para sentir la tapa. Abrilo sólo cuando quieras leer lo que acusa.';
   if (object.model === 'photo') return 'Arrastrá la foto: el frente miente mejor que el dorso.';
   if (object.model === 'keys') return 'Arrastrá hacia abajo para revisar la base del llavero. La ausencia pesa.';
@@ -715,7 +739,7 @@ function probeStatus(probe: InspectionProbe, discovered: InspectionClueId[], ope
   if (!probe.clue) return 'texture';
   if (discovered.includes(probe.clue.id)) return 'found';
   if (probe.clue.requiresOpen && !open) return 'blocked';
-  if (probe.clue.requiresLight && probe.clue.lightZone !== lightZone) return 'needs-light';
+  if (probe.clue.requiresLight && probe.clue.lightZone !== lightZone) return 'ready';
   return 'ready';
 }
 
@@ -762,15 +786,15 @@ function readingFor(
   }
   if (clue.requiresLight && clue.lightZone !== lightZone) {
     return {
-      kicker: 'sombra incorrecta',
-      title: 'La linterna todavía no muerde la marca',
-      body: `Mové el foco hacia ${lightLabels[clue.lightZone ?? 'center']} y tocá el brillo que aparezca.`,
+      kicker: 'luz asistida',
+      title: 'La marca ya toma luz',
+      body: `Tocá el brillo. La linterna va a caer hacia ${lightLabels[clue.lightZone ?? 'center']} sin pedirte puntería.`,
     };
   }
   return {
     kicker: 'lista para tocar',
     title: 'La marca está expuesta',
-    body: 'Ahora sí: tocá la zona iluminada o usá “examinar marca”.',
+    body: 'Ahora sí: tocá la zona iluminada o el botón contextual “tocar marca iluminada”.',
   };
 }
 

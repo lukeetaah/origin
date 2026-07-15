@@ -202,6 +202,7 @@ export default function Experience() {
       <SceneView
         debug={devDebugAllowed && debug}
         hotspots={hotspots}
+        key={state.scene}
         onHoldAbandoned={abandonHold}
         onHotspot={(hotspot) => runAction(hotspot.action, hotspot)}
         onLightFocus={reactToLight}

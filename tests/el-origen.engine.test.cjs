@@ -185,13 +185,13 @@ test('inspection system exposes six physical objects with gated clues', () => {
   }
 });
 
-test('scene hotspots require flashlight for inspectable narrative objects', () => {
+test('scene hotspots keep flashlight metadata without blocking narrative objects', () => {
   const inspectableIds = new Set(Object.keys(inspectionObjects));
   for (const scene of Object.values(sceneRegistry)) {
     for (const hotspot of scene.hotspots) {
       if (!hotspot.inspectable) continue;
       assert.ok(inspectableIds.has(hotspot.inspectable), `${hotspot.id} references inspectable object`);
-      assert.equal(hotspot.requiresLight, true, `${hotspot.id} is gated by flashlight`);
+      assert.equal(hotspot.requiresLight, true, `${hotspot.id} keeps cinematic flashlight metadata`);
       assert.ok(typeof hotspot.lightRadius === 'number' && hotspot.lightRadius >= 28, `${hotspot.id} has forgiving light radius`);
     }
   }
@@ -470,6 +470,8 @@ test('object descriptions are concrete and not accidentally duplicated', () => {
 test('inspection interface stays 2D, readable and free of broken WebGL dependencies', () => {
   const pkg = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
   const viewer = fs.readFileSync(path.join(process.cwd(), 'src/origin/components/InspectionViewer.tsx'), 'utf8');
+  const sceneView = fs.readFileSync(path.join(process.cwd(), 'src/origin/components/SceneView.tsx'), 'utf8');
+  const experience = fs.readFileSync(path.join(process.cwd(), 'src/origin/components/Experience.tsx'), 'utf8');
   const styles = fs.readFileSync(path.join(process.cwd(), 'src/origin/styles/elOrigen.module.css'), 'utf8');
   const dependencies = Object.keys(pkg.dependencies ?? {});
 
@@ -477,16 +479,24 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.doesNotMatch(viewer, /Canvas|WebGL|webgl|react-three|three/i);
   assert.doesNotMatch(styles, /perspective\(|rotateX|rotateY|inspectionCanvas/);
   assert.match(viewer, /inspectProbe/, 'objects expose explicit tactile inspection');
-  assert.match(viewer, /probeStatus/, 'inspection gates feedback by object state and light');
+  assert.match(viewer, /effectiveLight/, 'inspection auto-focuses light-gated marks instead of blocking them');
   assert.match(viewer, /visibleSidesFor\(object, open\)/, 'closed interiors are not offered as normal views');
+  assert.match(viewer, /initialInspectionFor/, 'inspection starts on the first readable clue instead of a blank face');
   assert.match(viewer, /folderArtifactBody/, 'folders render as readable evidence files');
   assert.match(viewer, /moveLightFromPointer/, 'flashlight follows player movement during inspection');
   assert.match(viewer, /sideFromGesture/, 'objects can be manipulated with gestures instead of only menu buttons');
+  assert.match(viewer, /inspectionHelp/, 'inspection shortcuts are collapsed instead of dominating the bottom UI');
+  assert.match(sceneView, /initialFocusFor/, 'scene flashlight starts on the first narrative object');
+  assert.match(sceneView, /const interactiveLit = lit \|\| Boolean\(hotspot\.inspectable\)/, 'inspectable hotspots remain interactive even outside the flashlight cone');
+  assert.match(experience, /key=\{state\.scene\}/, 'scene changes reset the initial cinematic focus');
   assert.match(viewer, /photoArtifactBody/, 'photos have a dedicated readable body');
   assert.match(viewer, /keysArtifactBody/, 'keys have a dedicated physical body');
   assert.match(viewer, /sensorArtifactBody/, 'sensors have a dedicated physical body');
   assert.match(styles, /\.probeButton/, 'visible probe buttons exist on inspected objects');
   assert.match(styles, /\.objectLightPatch/, 'the flashlight visibly changes the object');
+  assert.match(styles, /\.inspectionHelp/, 'inspection shortcuts are visually secondary');
+  assert.match(styles, /\.inspectionHelp:not\(\[open\]\) \.inspectionControls/, 'collapsed inspection shortcuts do not leak the old bottom bar');
+  assert.match(styles, /\.inspectionActions/, 'open/read actions are contextual near the object');
   assert.match(styles, /\.folderEvidence/, 'open folders show readable evidence pages');
   assert.match(styles, /\.documentPage/, 'document pages replace abstract pseudo-objects');
   assert.match(styles, /\.gesturePrompt/, 'gesture instructions are diegetic and visible');

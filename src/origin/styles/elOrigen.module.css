@@ -153,11 +153,11 @@
 
 .backdrop {
   background-image:
-    linear-gradient(180deg, rgba(0, 0, 0, .62), rgba(0, 0, 0, .82)),
+    linear-gradient(180deg, rgba(0, 0, 0, .46), rgba(0, 0, 0, .66)),
     var(--bg);
   background-size: 100% 100%;
   background-position: center;
-  filter: saturate(.45) sepia(.18) brightness(.38) contrast(1.22);
+  filter: saturate(.55) sepia(.16) brightness(.52) contrast(1.16);
 }
 
 .backdropLit {
@@ -170,9 +170,9 @@
   filter: saturate(1.08) sepia(.04) brightness(1.1) contrast(1.04);
   opacity: .98;
   mask-image:
-    radial-gradient(ellipse 17rem 12rem at var(--flx, 50%) var(--fly, 48%), #000 0 24%, rgba(0, 0, 0, .78) 45%, rgba(0, 0, 0, .22) 68%, transparent 100%);
+    radial-gradient(ellipse 22rem 16rem at var(--flx, 50%) var(--fly, 48%), #000 0 30%, rgba(0, 0, 0, .82) 52%, rgba(0, 0, 0, .34) 76%, transparent 100%);
   -webkit-mask-image:
-    radial-gradient(ellipse 17rem 12rem at var(--flx, 50%) var(--fly, 48%), #000 0 24%, rgba(0, 0, 0, .78) 45%, rgba(0, 0, 0, .22) 68%, transparent 100%);
+    radial-gradient(ellipse 22rem 16rem at var(--flx, 50%) var(--fly, 48%), #000 0 30%, rgba(0, 0, 0, .82) 52%, rgba(0, 0, 0, .34) 76%, transparent 100%);
 }
 
 .grain,
@@ -195,14 +195,14 @@
 .vignette {
   z-index: 45;
   background:
-    radial-gradient(circle at var(--flx, 50%) var(--fly, 48%), transparent 0 11rem, rgba(0, 0, 0, .18) 18rem, rgba(0, 0, 0, .72) 48rem),
-    linear-gradient(90deg, rgba(0, 0, 0, .32), transparent 14%, transparent 82%, rgba(0, 0, 0, .36));
+    radial-gradient(circle at var(--flx, 50%) var(--fly, 48%), transparent 0 13rem, rgba(0, 0, 0, .12) 22rem, rgba(0, 0, 0, .58) 50rem),
+    linear-gradient(90deg, rgba(0, 0, 0, .24), transparent 14%, transparent 82%, rgba(0, 0, 0, .28));
 }
 
 .flashlight {
   z-index: 46;
   background:
-    radial-gradient(circle at var(--flx, 50%) var(--fly, 48%), rgba(255, 236, 176, .35), rgba(255, 231, 160, .12) 7rem, rgba(255, 231, 160, .035) 15rem, transparent 23rem),
+    radial-gradient(circle at var(--flx, 50%) var(--fly, 48%), rgba(255, 236, 176, .48), rgba(255, 231, 160, .16) 9rem, rgba(255, 231, 160, .045) 18rem, transparent 27rem),
     radial-gradient(circle at calc(var(--flx, 50%) + 2rem) calc(var(--fly, 48%) - 1rem), rgba(255, 255, 255, .1), transparent 6rem);
   mix-blend-mode: screen;
   transition: opacity .18s ease;
@@ -1681,6 +1681,37 @@
   line-height: 1.32;
 }
 
+.inspectionActions {
+  position: relative;
+  z-index: 9;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .55rem;
+  width: min(38rem, 100%);
+  margin-top: .65rem;
+}
+
+.inspectPrimaryAction {
+  min-height: 2.6rem;
+  padding: .7rem 1rem;
+  border: 1px solid rgba(181, 231, 198, .62);
+  background:
+    linear-gradient(90deg, rgba(181, 231, 198, .15), rgba(232, 211, 141, .08)),
+    rgba(5, 12, 8, .84);
+  color: #fff8d7;
+  box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .32);
+  cursor: pointer;
+}
+
+.inspectPrimaryAction:hover,
+.inspectPrimaryAction:focus-visible {
+  border-color: rgba(255, 241, 181, .94);
+  background:
+    linear-gradient(90deg, rgba(181, 231, 198, .22), rgba(232, 211, 141, .14)),
+    rgba(8, 15, 9, .92);
+}
+
 .cluePanel {
   align-self: stretch;
   display: grid;
@@ -1801,19 +1832,50 @@
   box-shadow: 0 1.2rem 4rem rgba(0, 0, 0, .5);
 }
 
-.inspectionControls {
+.inspectionHelp {
   position: fixed;
-  left: 50%;
-  right: auto;
+  right: max(1rem, env(safe-area-inset-right));
   bottom: max(1rem, env(safe-area-inset-bottom));
   z-index: 4010;
+  color: #fff2bd;
+}
+
+.inspectionHelp summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  padding: .45rem .7rem;
+  border: 1px solid rgba(226, 205, 132, .34);
+  background: rgba(2, 4, 2, .72);
+  color: #fff2bd;
+  cursor: pointer;
+  font: 900 .65rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  list-style: none;
+}
+
+.inspectionHelp summary::-webkit-details-marker {
+  display: none;
+}
+
+.inspectionHelp[open] summary {
+  border-color: rgba(255, 241, 181, .72);
+  background: rgba(16, 18, 9, .92);
+}
+
+.inspectionHelp:not([open]) .inspectionControls {
+  display: none;
+}
+
+.inspectionControls {
+  margin-top: .45rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: .65rem;
-  width: min(76rem, calc(100vw - 2rem));
-  translate: -50% 0;
+  width: min(32rem, calc(100vw - 2rem));
   padding: .8rem;
   border: 1px solid rgba(226, 205, 132, .28);
   background: rgba(2, 4, 2, .88);
@@ -1852,7 +1914,7 @@
 }
 
 .inspectionProgress {
-  margin-left: auto;
+  margin-left: 0;
   white-space: nowrap;
   color: #fff4cf !important;
 }
@@ -1886,7 +1948,7 @@
   .inspectionLayout {
     grid-template-columns: 1fr;
     min-height: auto;
-    padding: 4.5rem .8rem 13rem;
+    padding: 4.5rem .8rem 5.2rem;
   }
 
   .inspectionBrief {
@@ -1895,7 +1957,7 @@
 
   .inspectionStage {
     min-height: 18rem;
-    padding-bottom: 5.8rem;
+    padding-bottom: 1rem;
   }
 
   .inspectedObject,
@@ -1914,7 +1976,8 @@
   .inspectionControls {
     align-items: stretch;
     justify-content: flex-start;
-    max-height: 11.5rem;
+    width: min(21rem, calc(100vw - 2rem));
+    max-height: 14rem;
     overflow: auto;
   }
 

@@ -23,8 +23,9 @@ type HoldingState = {
 
 export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAbandoned, onLightFocus }: SceneViewProps) {
   const scene = state.scene === 'ending' ? sceneRegistry.door : sceneRegistry[state.scene];
-  const [pointer, setPointer] = useState({ x: 50, y: 48 });
-  const [light, setLight] = useState({ x: 47, y: 46 });
+  const initialFocus = initialFocusFor(hotspots);
+  const [pointer, setPointer] = useState(initialFocus);
+  const [light, setLight] = useState(initialFocus);
   const [holding, setHolding] = useState<HoldingState | null>(null);
   const holdTimer = useRef<number | null>(null);
   const holdCompleted = useRef(false);
@@ -78,6 +79,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
       holdCompleted.current = true;
       holdTimer.current = null;
       setHolding(null);
+      if (hotspot.inspectable) onLightFocus(hotspot.objectId);
       onHotspot(hotspot);
     }, hotspot.holdMs);
   };
@@ -122,28 +124,33 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
 
         {hotspots.map((hotspot) => {
           const lit = isHotspotLit(hotspot, light);
+          const interactiveLit = lit || Boolean(hotspot.inspectable);
           return (
             <button
               aria-label={`${hotspot.label}: ${hotspot.verb}`}
               className={`${styles.hotspot} ${styles[`layer_${hotspot.layer ?? 'mid'}`]}`}
               data-gesture={hotspot.gesture ?? 'tap'}
               data-hotspot={hotspot.id}
-              data-lit={lit ? 'true' : 'false'}
+              data-lit={interactiveLit ? 'true' : 'false'}
               data-changed={state.objectStates[hotspot.objectId]?.changed ? 'true' : 'false'}
               data-object-id={hotspot.objectId}
-              disabled={!lit}
+              disabled={!interactiveLit}
               key={hotspot.id}
               onClick={() => {
-                if (lit && !hotspot.holdMs) onHotspot(hotspot);
+                if (interactiveLit && !hotspot.holdMs) {
+                  if (hotspot.inspectable) onLightFocus(hotspot.objectId);
+                  onHotspot(hotspot);
+                }
               }}
               onKeyDown={(event) => {
-                if (!lit || (event.key !== 'Enter' && event.key !== ' ')) return;
+                if (!interactiveLit || (event.key !== 'Enter' && event.key !== ' ')) return;
                 event.preventDefault();
                 clearHold(false);
+                if (hotspot.inspectable) onLightFocus(hotspot.objectId);
                 onHotspot(hotspot);
               }}
               onPointerCancel={() => clearHold(true)}
-              onPointerDown={(event) => startHotspot(event, hotspot, lit)}
+              onPointerDown={(event) => startHotspot(event, hotspot, interactiveLit)}
               onPointerLeave={() => clearHold(true)}
               onPointerUp={() => clearHold(true)}
               style={{
@@ -199,6 +206,18 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
       </div>
     </section>
   );
+}
+
+function initialFocusFor(hotspots: Hotspot[]) {
+  const target = hotspots.find((hotspot) => hotspot.inspectable)
+    ?? hotspots.find((hotspot) => hotspot.requiresLight)
+    ?? hotspots[0];
+
+  if (!target) return { x: 50, y: 48 };
+  return {
+    x: target.rect.x + target.rect.w / 2,
+    y: target.rect.y + target.rect.h / 2,
+  };
 }
 
 function isHotspotLit(hotspot: Hotspot, light: { x: number; y: number }) {
