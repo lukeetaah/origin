@@ -337,6 +337,12 @@ test('the strong startle is earned by flashlight focus on the opened route and o
 });
 
 test('behavioral profile and hidden panel are gated by material evidence', () => {
+  let early = start();
+  early = applyAction(early, 'openApartmentDoor');
+  early = applyAction(early, 'travelService');
+  early = applyAction(early, 'inspectServicePlan');
+  assert.equal(findHotspot(early, 'behavior-sensor'), undefined, 'red dot waits until the notebook makes surveillance legible');
+
   let state = reachNotebook();
   state = applyAction(state, 'travelService');
   assert.equal(findHotspot(state, 'hidden-panel'), undefined);
@@ -479,13 +485,17 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.doesNotMatch(viewer, /Canvas|WebGL|webgl|react-three|three/i);
   assert.doesNotMatch(styles, /perspective\(|rotateX|rotateY|inspectionCanvas/);
   assert.match(viewer, /inspectProbe/, 'objects expose explicit tactile inspection');
+  assert.match(viewer, /completesObject/, 'finished inspections close themselves after the last clue');
   assert.match(viewer, /effectiveLight/, 'inspection auto-focuses light-gated marks instead of blocking them');
   assert.match(viewer, /visibleSidesFor\(object, open\)/, 'closed interiors are not offered as normal views');
   assert.match(viewer, /initialInspectionFor/, 'inspection starts on the first readable clue instead of a blank face');
   assert.match(viewer, /folderArtifactBody/, 'folders render as readable evidence files');
+  assert.match(viewer, /data-envelope="true"/, 'the envelope renders as readable evidence pages');
   assert.match(viewer, /moveLightFromPointer/, 'flashlight follows player movement during inspection');
   assert.match(viewer, /sideFromGesture/, 'objects can be manipulated with gestures instead of only menu buttons');
   assert.match(viewer, /inspectionHelp/, 'inspection shortcuts are collapsed instead of dominating the bottom UI');
+  assert.match(experience, /prologueCopy/, 'the game opens with a contextual black-screen prologue');
+  assert.match(experience, /Tu abuela murió/, 'the prologue clearly states the inciting death');
   assert.match(experience, /deadlineFor/, 'the HUD exposes a visible countdown instead of hiding the deadline in prose');
   assert.match(experience, /ghostPhaseFor/, 'subtle hauntings are directed by scene state');
   assert.match(sceneView, /initialFocusFor/, 'scene flashlight starts on the first narrative object');
@@ -497,6 +507,8 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.match(viewer, /sensorArtifactBody/, 'sensors have a dedicated physical body');
   assert.match(styles, /\.probeButton/, 'visible probe buttons exist on inspected objects');
   assert.match(styles, /\.objectLightPatch/, 'the flashlight visibly changes the object');
+  assert.match(styles, /\.coverParticles/, 'the prologue uses cheap procedural atmosphere instead of heavy assets');
+  assert.match(styles, /\.prologueRules/, 'the opening gives playable context before interaction');
   assert.match(styles, /\.deadlineHud/, 'the deadline has an explicit Mafia-like HUD timer');
   assert.match(styles, /\.ghostLayer/, 'horror beats can appear and disappear without heavy assets');
   assert.match(styles, /\.flashlightHandle/, 'the flashlight is represented visually without WebGL');
@@ -504,6 +516,7 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.match(styles, /\.inspectionHelp:not\(\[open\]\) \.inspectionControls/, 'collapsed inspection shortcuts do not leak the old bottom bar');
   assert.match(styles, /\.inspectionActions/, 'open/read actions are contextual near the object');
   assert.match(styles, /\.folderEvidence/, 'open folders show readable evidence pages');
+  assert.match(styles, /\.folderEvidence\[data-envelope="true"\]/, 'envelope evidence uses the same readable page language');
   assert.match(styles, /\.documentPage/, 'document pages replace abstract pseudo-objects');
   assert.match(styles, /\.gesturePrompt/, 'gesture instructions are diegetic and visible');
   assert.match(styles, /\.photoPrint/, 'photo inspection is not a generic rectangle');

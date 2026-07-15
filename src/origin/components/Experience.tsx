@@ -193,16 +193,28 @@ export default function Experience() {
   }
 
   if (coverOpen || !state.started) {
-    const enterLabel = state.memory.entries > 0 ? 'Volver a entrar' : 'Entrar';
+    const enterLabel = state.memory.entries > 0 ? 'Volver a entrar' : 'Ir al departamento';
     return (
       <main className={styles.cover}>
-        <section className={styles.coverCard} aria-label="Portada">
-          <p className={styles.paperKicker}>departamento de la abuela</p>
+        <div className={styles.coverParticles} aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+        <section className={styles.coverCard} aria-label="Prólogo">
+          <p className={styles.paperKicker}>llamado · 19:41</p>
           <h1>EL ORIGEN</h1>
-          <p className={styles.coverBrief}>
-            Tu abuela murió y te mandan a retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria a las 20:00.
-            La casa no parece vacía: parece esperando testigo.
-          </p>
+          <div className={styles.prologueCopy}>
+            <p>Tu abuela murió hace unas horas.</p>
+            <p>La familia no discute el duelo: discute papeles. Te avisan que vayas al departamento antes de las 20:00 y retires dos cosas: el cuaderno azul y una carpeta.</p>
+            <p>No hay héroe definido. Sos quien todavía recuerda el olor del pasillo, la mesa de hule, una llave que sonaba distinto. La casa está vacía, pero no callada.</p>
+          </div>
+          <ol className={styles.prologueRules} aria-label="situación inicial">
+            <li>Entrá antes que la inmobiliaria.</li>
+            <li>Encontrá cuaderno y carpeta.</li>
+            <li>Si algo aparece en la luz, no mires tarde.</li>
+          </ol>
           <button onClick={() => runAction('enter')} type="button">{enterLabel}</button>
           {hasContinue && <button className={styles.secondaryButton} onClick={() => runAction('continue')} type="button">Continuar</button>}
         </section>

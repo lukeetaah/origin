@@ -160,10 +160,13 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
       return;
     }
 
+    const completesObject = object.clues.every((clue) => clue.id === probe.clue?.id || discovered.includes(clue.id));
+
     setFeedback(probe.clue.reveal);
     setFlash(probe.clue.reveal);
     window.setTimeout(() => setFlash(null), 2200);
     onDiscover(object.objectId, probe.clue.id);
+    if (completesObject) window.setTimeout(onClose, 1200);
   };
 
   const moveLightFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
@@ -487,7 +490,7 @@ function artifactBody(
 ) {
   if (object.model === 'folder') return folderArtifactBody(object, latestClue, readyClue, side, open);
   if (object.model === 'notebook') return notebookArtifactBody(object, latestClue, readyClue, side, open);
-  if (object.model === 'document') return envelopeArtifactBody(latestClue, readyClue, side);
+  if (object.model === 'document') return envelopeArtifactBody(latestClue, readyClue);
   if (object.model === 'photo') return photoArtifactBody(latestClue, readyClue, side);
   if (object.model === 'keys') return keysArtifactBody(latestClue, readyClue, side);
   if (object.model === 'sensor') return sensorArtifactBody(latestClue, readyClue, side, open);
@@ -503,15 +506,23 @@ function artifactBody(
 function envelopeArtifactBody(
   latestClue: InspectionClue | undefined,
   readyClue: InspectionClue | undefined,
-  side: InspectionSide,
 ) {
+  const headline = readyClue?.title ?? latestClue?.title ?? 'Hora impuesta';
   return (
-    <div className={styles.envelopeEvidence} data-reverse={side === 'back' ? 'true' : 'false'}>
-      <span className={styles.envelopeTape} />
-      <span className={styles.envelopeFlap} />
-      <strong>{side === 'back' ? '20:00 · retiro urgente' : 'Inmobiliaria / retiro previo'}</strong>
-      <p>{side === 'back' ? 'La hora no estaba en la carta. Estaba atrás, escrita para quien dudara.' : 'Cinta nueva. Piso viejo. Nadie deslizó esto hace días.'}</p>
-      <em>{readyClue?.title ?? latestClue?.title ?? (side === 'back' ? 'marca horaria' : 'sobre cerrado')}</em>
+    <div className={styles.folderEvidence} data-envelope="true">
+      <article className={styles.documentPage}>
+        <span className={styles.documentKicker}>citación</span>
+        <h3>Retiro antes de las 20:00</h3>
+        <p className={styles.documentLine}>Murió tu abuela. No te piden despedirte: te piden liberar papeles.</p>
+        <p className={styles.documentLine}>La inmobiliaria llega a horario fijo, como si el duelo fuera un trámite.</p>
+      </article>
+      <article className={styles.documentPage}>
+        <span className={styles.documentKicker}>marca verificable</span>
+        <h3>{headline}</h3>
+        <p className={styles.documentLine}>La hora no estaba escondida para protegerte. Estaba escrita para apurarte.</p>
+        <p className={styles.documentLine}>Cuaderno azul. Carpeta. Testigo antes de la venta.</p>
+        <strong className={readyClue ? styles.documentStampReady : styles.documentStamp}>20:00</strong>
+      </article>
     </div>
   );
 }
