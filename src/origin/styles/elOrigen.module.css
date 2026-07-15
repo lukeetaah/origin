@@ -1044,6 +1044,25 @@
   transition: transform .22s ease, background .22s ease, filter .22s ease;
 }
 
+.inspectedObject[data-document="true"] {
+  width: min(34rem, 100%, 46vw);
+  min-height: 18rem;
+  color: #211607;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+  font: 700 .95rem/1.25 Georgia, 'Times New Roman', serif;
+}
+
+.inspectedObject[data-document="true"][data-open="true"],
+.inspectedObject[data-document="true"][data-side="inside"] {
+  border-color: rgba(226, 205, 132, .28);
+  transform: none;
+  background:
+    radial-gradient(circle at var(--ix, 50%) var(--iy, 46%), rgba(255, 240, 172, .2), transparent 14rem),
+    rgba(12, 10, 5, .16);
+}
+
 .paperArtifact,
 .folderArtifact,
 .notebookArtifact,
@@ -1170,6 +1189,110 @@
   color: inherit;
 }
 
+.folderCover {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  align-content: center;
+  gap: .55rem;
+  width: min(24rem, 88%);
+  min-height: 14rem;
+  padding: 1.2rem 1.35rem;
+  border: 1px solid rgba(57, 35, 8, .38);
+  background:
+    linear-gradient(90deg, rgba(78, 47, 11, .18) 0 .55rem, transparent .55rem),
+    linear-gradient(135deg, #c5a65a, #8a6926);
+  box-shadow: 0 1.2rem 2.6rem rgba(0, 0, 0, .4);
+}
+
+.folderCover span,
+.documentKicker {
+  color: rgba(45, 28, 8, .68);
+  font: 900 .62rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.folderCover strong {
+  display: block;
+  max-width: 12rem;
+  color: #241505;
+  font-size: 2rem;
+  line-height: .9;
+}
+
+.folderCover p,
+.folderCover em {
+  max-width: 18rem;
+  margin: 0;
+  color: rgba(35, 23, 8, .78);
+}
+
+.folderCover em {
+  font: 900 .7rem/1.15 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.folderEvidence {
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem;
+  width: min(31rem, 94%);
+  padding: .65rem;
+  border: 1px solid rgba(64, 39, 11, .38);
+  background:
+    linear-gradient(90deg, rgba(70, 44, 15, .18), transparent 49%, rgba(61, 36, 10, .24) 50%, transparent 51%),
+    #b19042;
+  box-shadow: 0 1.4rem 3rem rgba(0, 0, 0, .45);
+}
+
+.documentPage {
+  min-height: 12.2rem;
+  padding: .85rem;
+  border: 1px solid rgba(64, 39, 11, .25);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 1.42rem, rgba(59, 38, 16, .16) 1.42rem calc(1.42rem + 1px)),
+    linear-gradient(135deg, #e0d09a, #bda35c);
+  color: #201506;
+  font-size: .86rem;
+}
+
+.documentPage h3 {
+  margin: .35rem 0 .55rem;
+  color: #190f03;
+  font-size: 1rem;
+  line-height: 1.02;
+}
+
+.documentLine {
+  margin: .38rem 0;
+  padding-left: .55rem;
+  border-left: 2px solid rgba(70, 42, 10, .42);
+  color: rgba(25, 15, 3, .88);
+}
+
+.documentStamp,
+.documentStampReady {
+  display: inline-block;
+  margin-top: .45rem;
+  padding: .38rem .55rem;
+  border: 2px solid rgba(77, 38, 12, .5);
+  rotate: -2deg;
+  color: #6b1f12;
+  font: 900 .72rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.documentStampReady {
+  border-color: rgba(105, 24, 14, .92);
+  background: rgba(255, 245, 190, .42);
+  box-shadow: 0 0 1.4rem rgba(255, 229, 124, .34);
+}
+
 .probeLayer {
   position: absolute;
   inset: 0;
@@ -1260,13 +1383,11 @@
 }
 
 .workbenchFeedback {
-  position: absolute;
-  left: 50%;
-  bottom: 1rem;
+  position: relative;
   z-index: 8;
-  width: min(38rem, calc(100% - 2rem));
-  margin: 0;
-  translate: -50% 0;
+  width: min(38rem, 100%);
+  margin: .85rem 0 0;
+  translate: none;
   padding: .72rem .9rem;
   border-left: 2px solid rgba(181, 231, 198, .75);
   background: rgba(5, 12, 8, .8);

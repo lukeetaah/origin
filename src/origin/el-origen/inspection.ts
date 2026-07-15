@@ -42,11 +42,11 @@ export const inspectionObjects = {
     primary: true,
     canOpen: true,
     material: 'cardboard',
-    instruction: 'Abrí el objeto y revisá el interior.',
-    initialObservation: 'La carpeta mezcla tasación, recibos y borradores de venta. Todo está demasiado ordenado.',
-    afterClueObservation: 'La oferta baja fue preparada antes de que la abuela dejara de vivir acá.',
+    instruction: 'Abrí el expediente. Leé la fecha, después tocá el sello marcado.',
+    initialObservation: 'La carpeta reúne tasación, recibos y borrador de venta. Parece archivo, pero arma una versión.',
+    afterClueObservation: 'La oferta baja existe antes del relato de abandono. La carpeta no ordena: acusa.',
     clues: [
-      clue('sale-before-diagnosis', 'inside', 'Fecha anterior', 'La oferta de venta fue fechada antes de cualquier diagnóstico familiar.', '¿La casa se abarató antes de estar vacía?', 'El sello queda oculto en el pliegue.', 'inspectFolder', false, undefined, true),
+      clue('sale-before-diagnosis', 'inside', 'Fecha anterior', 'La oferta baja está fechada antes del diagnóstico y usa abandono como condición del precio.', '¿La casa se abarató antes de estar vacía?', 'El sello prueba que la venta empezó antes del relato de abandono.', 'inspectFolder', false, undefined, true),
     ],
   },
   'grandmother-keyring': {

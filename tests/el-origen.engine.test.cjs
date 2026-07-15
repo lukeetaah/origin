@@ -478,8 +478,12 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.doesNotMatch(styles, /perspective\(|rotateX|rotateY|inspectionCanvas/);
   assert.match(viewer, /inspectProbe/, 'objects expose explicit tactile inspection');
   assert.match(viewer, /probeStatus/, 'inspection gates feedback by object state and light');
+  assert.match(viewer, /visibleSidesFor\(object, open\)/, 'closed interiors are not offered as normal views');
+  assert.match(viewer, /folderArtifactBody/, 'folders render as readable evidence files');
   assert.match(styles, /\.probeButton/, 'visible probe buttons exist on inspected objects');
   assert.match(styles, /\.objectLightPatch/, 'the flashlight visibly changes the object');
+  assert.match(styles, /\.folderEvidence/, 'open folders show readable evidence pages');
+  assert.match(styles, /\.documentPage/, 'document pages replace abstract pseudo-objects');
 });
 
 test('Vercel remains a Next app build and does not target static out', () => {

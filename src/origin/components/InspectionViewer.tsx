@@ -49,13 +49,13 @@ const lightPoints: Record<LightZone, { x: string; y: string }> = {
 
 export default function InspectionViewer({ object, state, onClose, onDiscover }: InspectionViewerProps) {
   const rememberedOpen = Boolean(state.objectStates[object.objectId]?.open);
-  const [side, setSide] = useState<InspectionSide>(() => sidesFor(object)[0] ?? 'front');
+  const [side, setSide] = useState<InspectionSide>(() => visibleSidesFor(object, rememberedOpen)[0] ?? 'front');
   const [lightZone, setLightZone] = useState<LightZone>('center');
   const [open, setOpen] = useState(rememberedOpen);
   const [flash, setFlash] = useState<string | null>(null);
   const [feedback, setFeedback] = useState(object.initialObservation);
   const [touchedProbe, setTouchedProbe] = useState<string | null>(null);
-  const [log, setLog] = useState<string[]>(['Objeto sobre la mesa. Buscá una marca que responda.']);
+  const [log, setLog] = useState<string[]>([openingLogFor(object)]);
 
   const discovered = useMemo(
     () => state.objectStates[object.objectId]?.discoveredClues ?? [],
@@ -67,7 +67,8 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
   );
   const latestClue = visibleClues.at(-1);
   const pendingClue = object.clues.find((clue) => !discovered.includes(clue.id));
-  const availableSides = useMemo(() => sidesFor(object), [object]);
+  const allSides = useMemo(() => sidesFor(object), [object]);
+  const availableSides = useMemo(() => visibleSidesFor(object, open), [object, open]);
   const probes = useMemo(() => probesFor(object, side), [object, side]);
   const readyProbe = probes.find((probe) => probe.clue && probeStatus(probe, discovered, open, lightZone) === 'ready');
   const relevantClue = readyProbe?.clue ?? object.clues.find((clue) => !discovered.includes(clue.id) && clue.side === side) ?? pendingClue;
@@ -93,6 +94,11 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
   };
 
   const changeSide = (candidate: InspectionSide) => {
+    if (candidate === 'inside' && !open && object.clues.some((clue) => clue.side === 'inside' && clue.requiresOpen)) {
+      setFeedback('Primero abrí el expediente. El interior no es una vista: es el contenido.');
+      writeLog('Intentaste leer el interior, pero la carpeta seguía cerrada.');
+      return;
+    }
     setSide(candidate);
     const next = describeSide(object, candidate, open, discovered);
     setFeedback(next);
@@ -108,7 +114,7 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
 
   const toggleOpen = () => {
     const nextOpen = !open;
-    const nextSide = nextOpen && availableSides.includes('inside') ? 'inside' : side === 'inside' ? 'front' : side;
+    const nextSide = nextOpen && allSides.includes('inside') ? 'inside' : side === 'inside' ? 'front' : side;
     setOpen(nextOpen);
     setSide(nextSide);
     setFeedback(nextOpen ? openTextFor(object) : 'Cerraste el objeto. Los pliegues vuelven a tapar parte de la lectura.');
@@ -194,14 +200,13 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
           <div
             aria-label={`${object.title}, vista ${sideLabels[side]}`}
             className={`${styles.inspectedObject} ${objectClass(object)}`}
+            data-document={isDocumentaryObject(object) ? 'true' : 'false'}
             data-hot={readyProbe ? 'true' : 'false'}
             data-open={open ? 'true' : 'false'}
             data-side={side}
           >
-            <span className={styles.objectFold} />
-            <span className={styles.objectSeal} />
+            {artifactBody(object, latestClue, readyProbe?.clue, side, open)}
             <span className={styles.objectLightPatch} />
-            <span className={styles.objectMark}>{objectMark(object, latestClue, readyProbe?.clue, side, open)}</span>
             <div className={styles.probeLayer} aria-label="zonas táctiles del objeto">
               {probes.map((probe) => {
                 const status = probeStatus(probe, discovered, open, lightZone);
@@ -286,7 +291,7 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
         </div>
         {(object.canOpen || object.canDisassemble) && (
           <button className={styles.inspectToggle} onClick={toggleOpen} type="button">
-            {open ? 'cerrar' : object.canDisassemble ? 'desarmar' : 'abrir'}
+            {open ? 'cerrar' : object.canDisassemble ? 'desarmar' : object.model === 'folder' ? 'abrir expediente' : 'abrir'}
           </button>
         )}
         {readyProbe && (
@@ -306,6 +311,123 @@ function sidesFor(object: InspectableObject) {
   if (object.model === 'keys' || object.model === 'sensor') sides.add('base');
   if (object.model === 'photo' || object.model === 'document') sides.add('back');
   return sideOrder.filter((side) => sides.has(side));
+}
+
+function visibleSidesFor(object: InspectableObject, open: boolean) {
+  return sidesFor(object).filter((side) => {
+    if (side !== 'inside') return true;
+    const insideRequiresOpen = object.clues.some((clue) => clue.side === 'inside' && clue.requiresOpen);
+    return open || !insideRequiresOpen;
+  });
+}
+
+function openingLogFor(object: InspectableObject) {
+  if (object.model === 'folder') return 'Expediente cerrado. Primero abrilo; después leé la línea marcada.';
+  if (object.model === 'notebook') return 'Cuaderno cerrado. Abrí la tapa antes de confiar en el dorso.';
+  return 'Objeto sobre la mesa. Buscá una marca que responda.';
+}
+
+function isDocumentaryObject(object: InspectableObject) {
+  return object.model === 'folder' || object.model === 'notebook' || object.model === 'document' || object.model === 'photo';
+}
+
+function artifactBody(
+  object: InspectableObject,
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+  open: boolean,
+) {
+  if (object.model === 'folder') return folderArtifactBody(object, latestClue, readyClue, side, open);
+  if (object.model === 'notebook') return notebookArtifactBody(object, latestClue, readyClue, side, open);
+  return (
+    <>
+      <span className={styles.objectFold} />
+      <span className={styles.objectSeal} />
+      <span className={styles.objectMark}>{objectMark(object, latestClue, readyClue, side, open)}</span>
+    </>
+  );
+}
+
+function folderArtifactBody(
+  object: InspectableObject,
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+  open: boolean,
+) {
+  if (!open || side !== 'inside') {
+    return (
+      <div className={styles.folderCover}>
+        <span>expediente</span>
+        <strong>{object.title}</strong>
+        <p>{object.objectId === 'kitchen-folder' ? 'tasación · recibos · borrador de venta' : 'plano · anexo · recorrido omitido'}</p>
+        <em>{open ? 'interior disponible' : 'cerrado: abrir para leer'}</em>
+      </div>
+    );
+  }
+
+  const isKitchenFolder = object.objectId === 'kitchen-folder';
+  const headline = readyClue?.title ?? latestClue?.title ?? (isKitchenFolder ? 'Fecha anterior' : 'Recorrido borrado');
+  return (
+    <div className={styles.folderEvidence}>
+      <article className={styles.documentPage}>
+        <span className={styles.documentKicker}>borrador de venta</span>
+        <h3>{isKitchenFolder ? 'Oferta preparada antes del abandono' : 'Plano oficial incompleto'}</h3>
+        <p className={styles.documentLine}>Fecha del documento: anterior al diagnóstico familiar.</p>
+        <p className={styles.documentLine}>Condición escrita: sostener versión de abandono.</p>
+        <p className={styles.documentLine}>Firma faltante: titular de la casa.</p>
+      </article>
+      <article className={styles.documentPage}>
+        <span className={styles.documentKicker}>marca verificable</span>
+        <h3>{headline}</h3>
+        <p className={styles.documentLine}>
+          {isKitchenFolder
+            ? 'La oferta baja aparece antes de que la casa estuviera vacía.'
+            : 'El recorrido de servicio fue borrado del plano entregado.'}
+        </p>
+        <p className={styles.documentLine}>La línea no pide fe: pide tocar el sello.</p>
+        <strong className={readyClue ? styles.documentStampReady : styles.documentStamp}>SELLO DE FECHA</strong>
+      </article>
+    </div>
+  );
+}
+
+function notebookArtifactBody(
+  object: InspectableObject,
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+  open: boolean,
+) {
+  if (!open || side !== 'inside') {
+    return (
+      <div className={styles.folderCover}>
+        <span>cuaderno</span>
+        <strong>{object.title}</strong>
+        <p>tapa azul · tela tibia · borde gastado</p>
+        <em>{open ? 'hojas disponibles' : 'cerrado: abrir para leer'}</em>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.folderEvidence}>
+      <article className={styles.documentPage}>
+        <span className={styles.documentKicker}>lista de acciones</span>
+        <h3>{readyClue?.title ?? latestClue?.title ?? 'Método doméstico'}</h3>
+        <p className={styles.documentLine}>Cortes de luz después de cada visita.</p>
+        <p className={styles.documentLine}>Muebles corridos para fabricar duda.</p>
+        <p className={styles.documentLine}>Golpes en pared cuando pedía ayuda.</p>
+      </article>
+      <article className={styles.documentPage}>
+        <span className={styles.documentKicker}>nota de margen</span>
+        <h3>No era memoria: era presión.</h3>
+        <p className={styles.documentLine}>La casa fue usada como tablero.</p>
+        <strong className={readyClue ? styles.documentStampReady : styles.documentStamp}>TOCAR LISTA</strong>
+      </article>
+    </div>
+  );
 }
 
 function probesFor(object: InspectableObject, side: InspectionSide): InspectionProbe[] {
@@ -365,6 +487,7 @@ function probe(id: string, label: string, x: string, y: string, fallback: string
 }
 
 function probePoint(clue: InspectionClue, index: number) {
+  if (clue.requiresOpen && clue.side === 'inside') return { x: '76%', y: '74%' };
   if (clue.lightZone) return lightPoints[clue.lightZone];
   const points = [
     { x: '51%', y: '50%' },
@@ -407,6 +530,15 @@ function readingFor(
   }
   if (discovered.includes(clue.id)) {
     return { kicker: 'pista fijada', title: clue.title, body: clue.fact };
+  }
+  if (clue.side === 'inside' && clue.requiresOpen && !open) {
+    return {
+      kicker: 'expediente cerrado',
+      title: object.model === 'folder' ? 'Abrí el expediente' : 'Abrí el objeto',
+      body: object.model === 'folder'
+        ? 'La prueba no está en la tapa. Está en la fecha y el sello del interior.'
+        : 'La marca está protegida por pliegues. Tocarla desde afuera no alcanza.',
+    };
   }
   if (clue.side !== side) {
     return {
