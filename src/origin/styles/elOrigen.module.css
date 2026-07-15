@@ -324,8 +324,14 @@
   .flashlight,
   .hotspot::before,
   .hotspot span,
-  .hotspot small {
+  .hotspot small,
+  .probeButton i,
+  .probeButton span {
     transition: none;
+  }
+
+  .probeButton[data-status="ready"] i {
+    animation: none;
   }
 }
 
@@ -928,7 +934,7 @@
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(15rem, 22rem) minmax(22rem, 1fr) minmax(17rem, 25rem);
+  grid-template-columns: minmax(14rem, 20rem) minmax(20rem, 1fr) minmax(16rem, 22rem);
   gap: clamp(1rem, 2.5vw, 2rem);
   min-height: calc(100dvh - 8rem);
   padding: clamp(1rem, 3vw, 2.4rem) clamp(1rem, 3vw, 2.8rem) 8.5rem;
@@ -962,24 +968,71 @@
   font: 700 .72rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
 }
 
+.inspectionStateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .45rem;
+  margin: .85rem 0 0;
+}
+
+.inspectionStateGrid div {
+  min-width: 0;
+  padding: .48rem .5rem;
+  border: 1px solid rgba(226, 205, 132, .2);
+  background: rgba(0, 0, 0, .24);
+}
+
+.inspectionStateGrid dt {
+  margin: 0 0 .2rem;
+  color: #bcd8c4;
+  font: 800 .58rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.inspectionStateGrid dd {
+  margin: 0;
+  color: #fff4cf;
+  font-size: .9rem;
+  line-height: 1.1;
+}
+
 .inspectionStage {
   position: relative;
   display: grid;
+  align-content: center;
   min-height: min(58vh, 36rem);
   place-items: center;
   padding: clamp(1rem, 3vw, 2.2rem);
   border: 1px solid rgba(226, 205, 132, .22);
+  overflow: hidden;
   background:
     radial-gradient(ellipse at 50% 52%, rgba(57, 50, 26, .5), transparent 45%),
     linear-gradient(180deg, rgba(7, 10, 6, .88), rgba(0, 0, 0, .95));
   box-shadow: inset 0 0 0 1px rgba(255, 244, 199, .03), 0 2rem 7rem rgba(0, 0, 0, .72);
 }
 
+.workbenchRail {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: .8rem;
+  z-index: 6;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: #d8cfa7;
+  font: 800 .62rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
 .inspectedObject {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(31rem, 48vw);
+  width: min(25rem, 100%, 42vw);
   min-height: 15rem;
   isolation: isolate;
   color: rgba(29, 23, 12, .82);
@@ -988,7 +1041,7 @@
   letter-spacing: .12em;
   font: 800 .78rem/1.1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
   filter: drop-shadow(0 2rem 2.8rem rgba(0, 0, 0, .75));
-  transition: transform .22s ease, background .22s ease;
+  transition: transform .22s ease, background .22s ease, filter .22s ease;
 }
 
 .paperArtifact,
@@ -1037,7 +1090,7 @@
 }
 
 .sensorArtifact {
-  width: min(22rem, 42vw);
+  width: min(22rem, 100%, 42vw);
   min-height: 14rem;
   color: rgba(248, 222, 190, .9);
   border-radius: 1.2rem;
@@ -1047,17 +1100,33 @@
   border: 1px solid rgba(198, 184, 132, .2);
 }
 
+.inspectedObject[data-hot="true"] {
+  filter: drop-shadow(0 2rem 2.8rem rgba(0, 0, 0, .75)) drop-shadow(0 0 1.7rem rgba(227, 205, 125, .28));
+}
+
 .inspectedObject[data-side="back"] {
   transform: rotate(1deg);
+  background:
+    radial-gradient(circle at 68% 30%, rgba(79, 45, 21, .32), transparent 6rem),
+    repeating-linear-gradient(0deg, rgba(46, 31, 11, .12) 0 1px, transparent 1px 20px),
+    linear-gradient(135deg, #bca76d, #695527);
 }
 
 .inspectedObject[data-side="base"] {
   transform: translateY(.35rem) rotate(-1deg);
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, .18), transparent 50%, rgba(255, 255, 255, .08)),
+    repeating-linear-gradient(90deg, rgba(255, 244, 199, .12) 0 2px, transparent 2px 16px),
+    linear-gradient(135deg, #443a25, #151711);
 }
 
 .inspectedObject[data-side="inside"],
 .inspectedObject[data-open="true"] {
   transform: rotate(-.6deg);
+  background:
+    linear-gradient(90deg, rgba(38, 26, 10, .3), transparent 48%, rgba(19, 12, 5, .42) 50%, transparent 53%),
+    repeating-linear-gradient(0deg, rgba(255, 247, 202, .18) 0 1px, transparent 1px 17px),
+    linear-gradient(135deg, #d2bf7c, #7b642d);
 }
 
 .objectFold {
@@ -1079,9 +1148,21 @@
   rotate: -8deg;
 }
 
+.objectLightPatch {
+  position: absolute;
+  inset: -12%;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at var(--ix, 50%) var(--iy, 46%), rgba(255, 240, 172, .72), rgba(255, 224, 128, .22) 5rem, rgba(255, 224, 128, .04) 11rem, transparent 17rem);
+  mix-blend-mode: screen;
+  opacity: .8;
+  transition: background-position .18s ease, opacity .18s ease;
+}
+
 .objectMark {
   position: relative;
-  z-index: 3;
+  z-index: 4;
   max-width: 70%;
   padding: .5rem .65rem;
   border: 1px solid rgba(255, 246, 202, .22);
@@ -1089,35 +1170,157 @@
   color: inherit;
 }
 
+.probeLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+}
+
+.probeButton {
+  position: absolute;
+  left: var(--px, 50%);
+  top: var(--py, 50%);
+  width: 1rem;
+  height: 1rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff2bd;
+  cursor: pointer;
+  translate: -50% -50%;
+}
+
+.probeButton i {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(226, 205, 132, .68);
+  border-radius: inherit;
+  background: rgba(226, 205, 132, .16);
+  box-shadow: 0 0 1.2rem rgba(226, 205, 132, .25);
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.probeButton span {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + .38rem);
+  width: max-content;
+  max-width: 10rem;
+  padding: .28rem .42rem;
+  translate: -50% .25rem;
+  border: 1px solid rgba(226, 205, 132, .45);
+  background: rgba(5, 8, 5, .86);
+  color: #fff2bd;
+  font: 800 .6rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .16s ease, translate .16s ease;
+}
+
+.probeButton:hover i,
+.probeButton:focus-visible i,
+.probeButton[data-active="true"] i {
+  transform: scale(1.32);
+  background: rgba(226, 205, 132, .28);
+}
+
+.probeButton:hover span,
+.probeButton:focus-visible span,
+.probeButton[data-active="true"] span,
+.probeButton[data-status="ready"] span {
+  opacity: 1;
+  translate: -50% 0;
+}
+
+.probeButton[data-status="ready"] i {
+  border-color: rgba(183, 237, 201, .95);
+  background: rgba(112, 201, 142, .28);
+  box-shadow: 0 0 2.1rem rgba(112, 201, 142, .44);
+  animation: revealObject 1.35s ease-in-out infinite;
+}
+
+.probeButton[data-status="needs-light"] i {
+  border-color: rgba(130, 109, 56, .62);
+  background: rgba(130, 109, 56, .1);
+  box-shadow: none;
+}
+
+.probeButton[data-status="blocked"] i {
+  border-color: rgba(170, 72, 52, .72);
+  background: rgba(170, 72, 52, .14);
+}
+
+.probeButton[data-status="found"] i {
+  border-color: rgba(255, 241, 181, .95);
+  background: rgba(255, 241, 181, .34);
+  box-shadow: 0 0 1.7rem rgba(255, 241, 181, .36);
+}
+
+.workbenchFeedback {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  z-index: 8;
+  width: min(38rem, calc(100% - 2rem));
+  margin: 0;
+  translate: -50% 0;
+  padding: .72rem .9rem;
+  border-left: 2px solid rgba(181, 231, 198, .75);
+  background: rgba(5, 12, 8, .8);
+  color: #fff8e7;
+  line-height: 1.32;
+}
+
 .cluePanel {
   align-self: stretch;
   display: grid;
   align-content: center;
   gap: .9rem;
+  min-width: 0;
+  overflow: auto;
   padding: 1rem;
   border: 1px solid rgba(181, 231, 198, .22);
   background: rgba(4, 11, 7, .76);
   box-shadow: 0 1rem 3rem rgba(0, 0, 0, .35);
 }
 
+.cluePanel[data-ready="true"] {
+  border-color: rgba(181, 231, 198, .58);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(181, 231, 198, .12), transparent 10rem),
+    rgba(4, 11, 7, .82);
+}
+
 .inspectionEvidence,
-.inspectionHint {
+.inspectionHint,
+.readyHint {
   padding: 1rem;
   border-left: 2px solid rgba(181, 231, 198, .82);
   background: rgba(0, 0, 0, .32);
 }
 
 .inspectionEvidence strong,
-.inspectionHint strong {
+.inspectionHint strong,
+.readyHint strong {
   display: block;
   margin-bottom: .5rem;
   color: #fff4cf;
 }
 
 .inspectionEvidence p,
-.inspectionHint p {
+.inspectionHint p,
+.readyHint p {
   margin: 0;
   line-height: 1.35;
+}
+
+.readyHint {
+  border-left-color: rgba(255, 241, 181, .92);
+  background:
+    linear-gradient(90deg, rgba(232, 211, 141, .18), rgba(0, 0, 0, .26));
 }
 
 .inspectionEvidence em {
@@ -1132,6 +1335,19 @@
   padding-left: 1.1rem;
   font-size: .86rem;
   color: #d8cfa7;
+}
+
+.inspectionLog {
+  margin: .2rem 0 0;
+  padding: .7rem .8rem .7rem 1.55rem;
+  border: 1px solid rgba(226, 205, 132, .16);
+  background: rgba(0, 0, 0, .18);
+  color: #d8cfa7;
+  font: 700 .68rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+.inspectionLog li + li {
+  margin-top: .35rem;
 }
 
 .closeInspection {
@@ -1176,7 +1392,7 @@
   align-items: center;
   justify-content: center;
   gap: .65rem;
-  width: min(82rem, calc(100vw - 2rem));
+  width: min(76rem, calc(100vw - 2rem));
   translate: -50% 0;
   padding: .8rem;
   border: 1px solid rgba(226, 205, 132, .28);
@@ -1259,11 +1475,20 @@
 
   .inspectionStage {
     min-height: 18rem;
+    padding-bottom: 5.8rem;
   }
 
   .inspectedObject,
   .sensorArtifact {
     width: min(18rem, 82vw);
+  }
+
+  .inspectionStateGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .workbenchFeedback {
+    font-size: .88rem;
   }
 
   .inspectionControls {

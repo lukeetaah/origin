@@ -267,6 +267,7 @@ export default function Experience() {
       {notebookOpen && <NotebookPanel state={state} onClose={() => setNotebookOpen(false)} />}
       {inspectionObject && (
         <InspectionViewer
+          key={inspectionObject.objectId}
           object={inspectionObject}
           onClose={() => setInspectionId(null)}
           onDiscover={discoverClue}
