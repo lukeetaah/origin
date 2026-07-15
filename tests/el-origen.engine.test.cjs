@@ -480,10 +480,19 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.match(viewer, /probeStatus/, 'inspection gates feedback by object state and light');
   assert.match(viewer, /visibleSidesFor\(object, open\)/, 'closed interiors are not offered as normal views');
   assert.match(viewer, /folderArtifactBody/, 'folders render as readable evidence files');
+  assert.match(viewer, /moveLightFromPointer/, 'flashlight follows player movement during inspection');
+  assert.match(viewer, /sideFromGesture/, 'objects can be manipulated with gestures instead of only menu buttons');
+  assert.match(viewer, /photoArtifactBody/, 'photos have a dedicated readable body');
+  assert.match(viewer, /keysArtifactBody/, 'keys have a dedicated physical body');
+  assert.match(viewer, /sensorArtifactBody/, 'sensors have a dedicated physical body');
   assert.match(styles, /\.probeButton/, 'visible probe buttons exist on inspected objects');
   assert.match(styles, /\.objectLightPatch/, 'the flashlight visibly changes the object');
   assert.match(styles, /\.folderEvidence/, 'open folders show readable evidence pages');
   assert.match(styles, /\.documentPage/, 'document pages replace abstract pseudo-objects');
+  assert.match(styles, /\.gesturePrompt/, 'gesture instructions are diegetic and visible');
+  assert.match(styles, /\.photoPrint/, 'photo inspection is not a generic rectangle');
+  assert.match(styles, /\.keysEvidence/, 'keyring inspection is not a generic rectangle');
+  assert.match(styles, /\.sensorEvidence/, 'sensor inspection is not a generic rectangle');
 });
 
 test('Vercel remains a Next app build and does not target static out', () => {

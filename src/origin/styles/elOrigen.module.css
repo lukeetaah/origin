@@ -912,6 +912,30 @@
   cursor: default;
 }
 
+.inspectionOverlay::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: .32;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .035) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at var(--ix, 50%) var(--iy, 50%), transparent 0 12rem, rgba(0, 0, 0, .3) 32rem);
+  mix-blend-mode: soft-light;
+}
+
+.inspectionOverlay[data-threat="ready"]::after {
+  opacity: .46;
+  animation: dreadBreath 2.4s ease-in-out infinite;
+}
+
+@keyframes dreadBreath {
+  0%,
+  100% { filter: brightness(1); }
+  50% { filter: brightness(1.32); }
+}
+
 .inspectionBackdrop {
   position: absolute;
   inset: 0;
@@ -1012,6 +1036,23 @@
   box-shadow: inset 0 0 0 1px rgba(255, 244, 199, .03), 0 2rem 7rem rgba(0, 0, 0, .72);
 }
 
+.gesturePrompt {
+  position: absolute;
+  left: 50%;
+  top: 2rem;
+  z-index: 7;
+  width: min(34rem, calc(100% - 2rem));
+  margin: 0;
+  translate: -50% 0;
+  color: #cfe5d2;
+  font: 800 .7rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .08em;
+  text-align: center;
+  text-transform: uppercase;
+  opacity: .86;
+  pointer-events: none;
+}
+
 .workbenchRail {
   position: absolute;
   left: 1rem;
@@ -1041,7 +1082,12 @@
   letter-spacing: .12em;
   font: 800 .78rem/1.1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
   filter: drop-shadow(0 2rem 2.8rem rgba(0, 0, 0, .75));
+  cursor: grab;
   transition: transform .22s ease, background .22s ease, filter .22s ease;
+}
+
+.inspectedObject:active {
+  cursor: grabbing;
 }
 
 .inspectedObject[data-document="true"] {
@@ -1069,7 +1115,7 @@
 .photoArtifact {
   aspect-ratio: 1.45;
   border: 1px solid rgba(24, 18, 9, .45);
-  transform: rotate(-1.5deg);
+  transform: rotate(var(--turn, -1.5deg));
 }
 
 .paperArtifact {
@@ -1124,7 +1170,7 @@
 }
 
 .inspectedObject[data-side="back"] {
-  transform: rotate(1deg);
+  transform: rotate(var(--turn, 1deg));
   background:
     radial-gradient(circle at 68% 30%, rgba(79, 45, 21, .32), transparent 6rem),
     repeating-linear-gradient(0deg, rgba(46, 31, 11, .12) 0 1px, transparent 1px 20px),
@@ -1132,7 +1178,7 @@
 }
 
 .inspectedObject[data-side="base"] {
-  transform: translateY(.35rem) rotate(-1deg);
+  transform: translateY(.35rem) rotate(var(--turn, -1deg));
   background:
     linear-gradient(90deg, rgba(0, 0, 0, .18), transparent 50%, rgba(255, 255, 255, .08)),
     repeating-linear-gradient(90deg, rgba(255, 244, 199, .12) 0 2px, transparent 2px 16px),
@@ -1141,7 +1187,7 @@
 
 .inspectedObject[data-side="inside"],
 .inspectedObject[data-open="true"] {
-  transform: rotate(-.6deg);
+  transform: rotate(var(--turn, -.6deg));
   background:
     linear-gradient(90deg, rgba(38, 26, 10, .3), transparent 48%, rgba(19, 12, 5, .42) 50%, transparent 53%),
     repeating-linear-gradient(0deg, rgba(255, 247, 202, .18) 0 1px, transparent 1px 17px),
@@ -1293,6 +1339,246 @@
   box-shadow: 0 0 1.4rem rgba(255, 229, 124, .34);
 }
 
+.envelopeEvidence,
+.photoPrint,
+.photoBack,
+.keysEvidence,
+.sensorEvidence {
+  position: relative;
+  z-index: 4;
+  width: min(26rem, 90%);
+  min-height: 14rem;
+  padding: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(64, 39, 11, .35);
+  box-shadow: 0 1.4rem 3rem rgba(0, 0, 0, .44);
+}
+
+.envelopeEvidence {
+  display: grid;
+  align-content: end;
+  gap: .55rem;
+  background:
+    linear-gradient(150deg, transparent 0 45%, rgba(87, 58, 21, .18) 45.5% 46.5%, transparent 47%),
+    linear-gradient(30deg, transparent 0 45%, rgba(87, 58, 21, .16) 45.5% 46.5%, transparent 47%),
+    linear-gradient(135deg, #ddcd96, #9f813b);
+  color: #211607;
+}
+
+.envelopeEvidence[data-reverse="true"] {
+  background:
+    repeating-linear-gradient(0deg, rgba(60, 42, 18, .12) 0 1px, transparent 1px 18px),
+    linear-gradient(135deg, #c5b270, #806429);
+}
+
+.envelopeTape {
+  position: absolute;
+  right: 12%;
+  top: 16%;
+  width: 4.2rem;
+  height: .7rem;
+  background: rgba(248, 239, 202, .48);
+  rotate: -8deg;
+}
+
+.envelopeFlap {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, transparent 48%, rgba(65, 42, 13, .16) 49%, transparent 50%);
+}
+
+.envelopeEvidence strong,
+.photoPrint strong,
+.photoBack strong,
+.keysEvidence strong,
+.sensorEvidence strong {
+  position: relative;
+  z-index: 2;
+  display: block;
+  color: #211607;
+  font-size: 1.15rem;
+  line-height: 1.05;
+}
+
+.envelopeEvidence p,
+.photoPrint p,
+.photoBack p,
+.sensorEvidence p {
+  position: relative;
+  z-index: 2;
+  max-width: 18rem;
+  margin: 0;
+  color: rgba(31, 20, 7, .82);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.envelopeEvidence em,
+.photoBack em {
+  position: relative;
+  z-index: 2;
+  color: #6b1f12;
+  font: 900 .68rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.photoPrint {
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: .55rem;
+  padding: .75rem;
+  background: #e7d9ad;
+}
+
+.photoScene {
+  position: relative;
+  min-height: 10rem;
+  background:
+    radial-gradient(circle at 70% 48%, rgba(11, 20, 12, .9) 0 .7rem, transparent .75rem),
+    linear-gradient(90deg, rgba(30, 25, 16, .82), rgba(71, 61, 39, .6)),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .2) 0 1px, transparent 1px 3rem);
+}
+
+.photoScene i {
+  position: absolute;
+  bottom: 1.2rem;
+  width: 1.2rem;
+  height: 3.5rem;
+  border-radius: 999px 999px 4px 4px;
+  background: rgba(12, 10, 7, .72);
+}
+
+.photoScene i:nth-child(1) { left: 22%; }
+.photoScene i:nth-child(2) { left: 38%; height: 4.1rem; }
+.photoScene i:nth-child(3) { left: 53%; height: 3.7rem; }
+
+.photoScene span {
+  position: absolute;
+  right: 9%;
+  bottom: 0;
+  width: 18%;
+  height: 72%;
+  border: 2px solid rgba(235, 218, 151, .45);
+  background: rgba(6, 7, 5, .62);
+}
+
+.photoBack {
+  display: grid;
+  align-content: center;
+  gap: .65rem;
+  background:
+    repeating-linear-gradient(-8deg, transparent 0 1.4rem, rgba(70, 48, 18, .13) 1.4rem calc(1.4rem + 1px)),
+    linear-gradient(135deg, #d6c58a, #9b7f3b);
+}
+
+.photoBack span {
+  color: rgba(36, 23, 6, .62);
+  font: 900 .62rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.keysEvidence {
+  min-height: 17rem;
+  background:
+    radial-gradient(circle at 36% 36%, rgba(255, 241, 181, .16), transparent 8rem),
+    linear-gradient(135deg, #14150f, #060806);
+  color: #f8edc3;
+}
+
+.keyRing {
+  position: absolute;
+  left: 24%;
+  top: 18%;
+  width: 6rem;
+  height: 6rem;
+  border: .7rem solid rgba(203, 190, 128, .9);
+  border-radius: 50%;
+  box-shadow: 0 0 2rem rgba(203, 190, 128, .2);
+}
+
+.keyBladeOne,
+.keyBladeTwo,
+.keyBladeShort {
+  position: absolute;
+  left: 48%;
+  top: 43%;
+  width: 2.1rem;
+  height: 8rem;
+  border-radius: 1rem 1rem .25rem .25rem;
+  transform-origin: top center;
+  background: linear-gradient(90deg, #6f653f, #d0c27f, #675d39);
+}
+
+.keyBladeOne { rotate: -28deg; }
+.keyBladeTwo { rotate: 0deg; }
+.keyBladeShort { rotate: 28deg; }
+
+.missingTag {
+  position: absolute;
+  right: 10%;
+  bottom: 18%;
+  max-width: 9rem;
+  padding: .45rem .55rem;
+  border: 1px dashed rgba(116, 178, 223, .9);
+  color: #bfe0ff;
+  font: 900 .66rem/1.15 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.keysEvidence strong {
+  position: absolute;
+  left: 8%;
+  bottom: 8%;
+  color: #fff4cf;
+}
+
+.sensorEvidence {
+  display: grid;
+  align-content: end;
+  gap: .55rem;
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, #2d332b, #10140f);
+  color: #f8edc3;
+}
+
+.sensorLed {
+  position: absolute;
+  right: 22%;
+  top: 24%;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #ff4638;
+  box-shadow: 0 0 1.8rem rgba(255, 70, 56, .8);
+}
+
+.sensorScrewA,
+.sensorScrewB {
+  position: absolute;
+  width: .65rem;
+  height: .65rem;
+  border-radius: 50%;
+  background: rgba(220, 205, 150, .55);
+}
+
+.sensorScrewA { left: 12%; top: 14%; }
+.sensorScrewB { right: 12%; bottom: 14%; }
+
+.sensorEvidence strong,
+.sensorEvidence p {
+  color: #fff4cf;
+}
+
+.sensorEvidence[data-base="true"] {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .04) 0 1px, transparent 1px 1.8rem),
+    linear-gradient(135deg, #171c15, #050705);
+}
+
 .probeLayer {
   position: absolute;
   inset: 0;
@@ -1421,6 +1707,19 @@
   padding: 1rem;
   border-left: 2px solid rgba(181, 231, 198, .82);
   background: rgba(0, 0, 0, .32);
+}
+
+.threatLine {
+  margin: 0;
+  padding: .7rem .85rem;
+  border: 1px solid rgba(226, 205, 132, .16);
+  background:
+    radial-gradient(circle at 12% 50%, rgba(255, 75, 58, .12), transparent 7rem),
+    rgba(0, 0, 0, .22);
+  color: #f0dfad;
+  font: 800 .72rem/1.35 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
 }
 
 .inspectionEvidence strong,

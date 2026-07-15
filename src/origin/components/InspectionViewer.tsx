@@ -1,6 +1,6 @@
 'use client';
 
-import { type CSSProperties, type MouseEvent, useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, type MouseEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useState } from 'react';
 import { GameState, InspectableObject, InspectionClue, InspectionClueId, InspectionSide } from '../el-origen/types';
 import styles from '../styles/elOrigen.module.css';
 
@@ -20,6 +20,12 @@ type InspectionProbe = {
   y: string;
   clue?: InspectionClue;
   fallback: string;
+};
+type DragState = {
+  x: number;
+  y: number;
+  side: InspectionSide;
+  moved: boolean;
 };
 
 const sideOrder: InspectionSide[] = ['front', 'back', 'left', 'right', 'top', 'base', 'inside'];
@@ -56,6 +62,8 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
   const [feedback, setFeedback] = useState(object.initialObservation);
   const [touchedProbe, setTouchedProbe] = useState<string | null>(null);
   const [log, setLog] = useState<string[]>([openingLogFor(object)]);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const [gesture, setGesture] = useState(gestureHintFor(object));
 
   const discovered = useMemo(
     () => state.objectStates[object.objectId]?.discoveredClues ?? [],
@@ -74,6 +82,7 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
   const relevantClue = readyProbe?.clue ?? object.clues.find((clue) => !discovered.includes(clue.id) && clue.side === side) ?? pendingClue;
   const lightPoint = lightPoints[lightZone];
   const reading = readingFor(object, relevantClue, side, lightZone, open, discovered);
+  const threatLine = threatLineFor(object, readyProbe?.clue, latestClue, open);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -119,6 +128,7 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
     setSide(nextSide);
     setFeedback(nextOpen ? openTextFor(object) : 'Cerraste el objeto. Los pliegues vuelven a tapar parte de la lectura.');
     writeLog(nextOpen ? (object.canDisassemble ? 'Desarmaste la pieza sin romperla.' : 'Abriste el objeto.') : 'Cerraste el objeto.');
+    setGesture(nextOpen ? 'Ahora el contenido pesa más que la tapa. Tocá la marca que no debería estar ahí.' : gestureHintFor(object));
     setTouchedProbe(null);
   };
 
@@ -150,11 +160,42 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
     onDiscover(object.objectId, probe.clue.id);
   };
 
+  const moveLightFromPointer = (event: ReactPointerEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
+    const nextLight = lightZoneFromPoint(x, y);
+    if (nextLight !== lightZone) setLightZone(nextLight);
+
+    if (!drag) return;
+    const dx = event.clientX - drag.x;
+    const dy = event.clientY - drag.y;
+    const nextSide = sideFromGesture(object, open, drag.side, dx, dy, availableSides);
+    if (nextSide !== side) {
+      setSide(nextSide);
+      setFeedback(describeSide(object, nextSide, open, discovered));
+      setGesture(gestureResultFor(nextSide, object, open));
+    }
+    if (!drag.moved && Math.hypot(dx, dy) > 24) setDrag({ ...drag, moved: true });
+  };
+
+  const startDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    setDrag({ x: event.clientX, y: event.clientY, side, moved: false });
+    setGesture('La linterna sigue tu mano. Arrastrá suave: el objeto responde antes de obedecer.');
+  };
+
+  const stopDrag = () => {
+    if (drag?.moved) writeLog(`Manipulaste el objeto: ${sideLabels[side]}.`);
+    setDrag(null);
+  };
+
   return (
     <section
       aria-label={`inspección de ${object.title}`}
       aria-modal="true"
       className={styles.inspectionOverlay}
+      data-threat={readyProbe ? 'ready' : latestClue ? 'resolved' : 'watching'}
       role="dialog"
       style={{ '--ix': lightPoint.x, '--iy': lightPoint.y } as CSSProperties}
     >
@@ -192,11 +233,12 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
           <small>{object.instruction}</small>
         </aside>
 
-        <main className={styles.inspectionStage} aria-live="polite">
+        <main className={styles.inspectionStage} aria-live="polite" onPointerMove={moveLightFromPointer}>
           <div className={styles.workbenchRail}>
             <span>{sideLabels[side]}</span>
-            <span>{readyProbe ? 'marca expuesta' : reading.kicker}</span>
+            <span>{readyProbe ? 'la casa contiene la respiración' : reading.kicker}</span>
           </div>
+          <p className={styles.gesturePrompt}>{gesture}</p>
           <div
             aria-label={`${object.title}, vista ${sideLabels[side]}`}
             className={`${styles.inspectedObject} ${objectClass(object)}`}
@@ -204,6 +246,11 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
             data-hot={readyProbe ? 'true' : 'false'}
             data-open={open ? 'true' : 'false'}
             data-side={side}
+            onPointerCancel={stopDrag}
+            onPointerDown={startDrag}
+            onPointerLeave={stopDrag}
+            onPointerUp={stopDrag}
+            style={{ '--turn': `${turnForSide(side)}deg`, '--tilt': `${tiltForSide(side)}deg` } as CSSProperties}
           >
             {artifactBody(object, latestClue, readyProbe?.clue, side, open)}
             <span className={styles.objectLightPatch} />
@@ -234,6 +281,7 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
 
         <aside className={styles.cluePanel} data-ready={readyProbe ? 'true' : 'false'}>
           <p className={styles.paperKicker}>lectura</p>
+          <p className={styles.threatLine}>{threatLine}</p>
           <article className={readyProbe ? styles.readyHint : styles.inspectionHint}>
             <strong>{reading.title}</strong>
             <p>{reading.body}</p>
@@ -262,7 +310,7 @@ export default function InspectionViewer({ object, state, onClose, onDiscover }:
 
       <footer className={styles.inspectionControls} aria-label="controles de inspección">
         <div>
-          <span>girar</span>
+          <span>atajos</span>
           {availableSides.map((candidate) => (
             <button
               aria-pressed={candidate === side}
@@ -321,6 +369,81 @@ function visibleSidesFor(object: InspectableObject, open: boolean) {
   });
 }
 
+function lightZoneFromPoint(x: number, y: number): LightZone {
+  if (y < 28) return 'top';
+  if (y > 72) return 'bottom';
+  if (x < 34) return 'left';
+  if (x > 66) return 'right';
+  return 'center';
+}
+
+function sideFromGesture(
+  object: InspectableObject,
+  open: boolean,
+  start: InspectionSide,
+  dx: number,
+  dy: number,
+  availableSides: InspectionSide[],
+) {
+  if (Math.abs(dx) < 36 && Math.abs(dy) < 36) return start;
+  if (Math.abs(dy) > Math.abs(dx)) {
+    if (dy > 46 && availableSides.includes('base')) return 'base';
+    if (dy < -46 && availableSides.includes('top')) return 'top';
+    if (dy > 46 && open && availableSides.includes('inside')) return 'inside';
+  }
+  if (dx > 46 && availableSides.includes('back')) return 'back';
+  if (dx < -46 && availableSides.includes('front')) return 'front';
+  if (object.model === 'photo' && dx > 32 && availableSides.includes('back')) return 'back';
+  return start;
+}
+
+function gestureHintFor(object: InspectableObject) {
+  if (object.model === 'folder') return 'Arrastrá el expediente para sentir la tapa. Abrilo sólo cuando quieras leer lo que acusa.';
+  if (object.model === 'photo') return 'Arrastrá la foto: el frente miente mejor que el dorso.';
+  if (object.model === 'keys') return 'Arrastrá hacia abajo para revisar la base del llavero. La ausencia pesa.';
+  if (object.model === 'sensor') return 'Arrastrá hacia abajo y seguí el punto rojo con la luz. Él también te sigue.';
+  if (object.model === 'notebook') return 'Abrí el cuaderno como si alguien lo estuviera sosteniendo del otro lado.';
+  return 'Arrastrá para girar. Mové el puntero para barrer con la linterna. Tocá lo que no debería brillar.';
+}
+
+function gestureResultFor(side: InspectionSide, object: InspectableObject, open: boolean) {
+  if (side === 'inside' && open) return object.model === 'folder'
+    ? 'El expediente abierto deja de ser cosa: ahora es acusación.'
+    : 'El interior respira apenas, como si las páginas hubieran estado esperando.';
+  if (side === 'back') return 'El dorso no decora: contradice.';
+  if (side === 'base') return 'La parte que nadie mira tiene la marca más honesta.';
+  if (side === 'top') return 'Desde arriba, el objeto parece más ordenado de lo que es.';
+  return 'El frente intenta comportarse como una versión oficial.';
+}
+
+function threatLineFor(
+  object: InspectableObject,
+  readyClue: InspectionClue | undefined,
+  latestClue: InspectionClue | undefined,
+  open: boolean,
+) {
+  if (readyClue) return 'Hay una marca lista. Si la tocás, la casa pierde una coartada.';
+  if (latestClue) return 'La prueba ya quedó en la libreta. El departamento no parece agradecido.';
+  if (object.model === 'sensor') return 'No es un susto: es vigilancia. El horror acá sabe contar.';
+  if (open) return 'Algo quedó expuesto y el silencio cambió de peso.';
+  return 'No busques monstruos. Buscá instrucciones, fechas y ausencias.';
+}
+
+function turnForSide(side: InspectionSide) {
+  if (side === 'back') return 2.5;
+  if (side === 'base') return -1.2;
+  if (side === 'inside') return 0;
+  if (side === 'top') return .8;
+  return -1.5;
+}
+
+function tiltForSide(side: InspectionSide) {
+  if (side === 'back') return -1;
+  if (side === 'base') return 1.4;
+  if (side === 'inside') return 0;
+  return .4;
+}
+
 function openingLogFor(object: InspectableObject) {
   if (object.model === 'folder') return 'Expediente cerrado. Primero abrilo; después leé la línea marcada.';
   if (object.model === 'notebook') return 'Cuaderno cerrado. Abrí la tapa antes de confiar en el dorso.';
@@ -340,12 +463,95 @@ function artifactBody(
 ) {
   if (object.model === 'folder') return folderArtifactBody(object, latestClue, readyClue, side, open);
   if (object.model === 'notebook') return notebookArtifactBody(object, latestClue, readyClue, side, open);
+  if (object.model === 'document') return envelopeArtifactBody(latestClue, readyClue, side);
+  if (object.model === 'photo') return photoArtifactBody(latestClue, readyClue, side);
+  if (object.model === 'keys') return keysArtifactBody(latestClue, readyClue, side);
+  if (object.model === 'sensor') return sensorArtifactBody(latestClue, readyClue, side, open);
   return (
     <>
       <span className={styles.objectFold} />
       <span className={styles.objectSeal} />
       <span className={styles.objectMark}>{objectMark(object, latestClue, readyClue, side, open)}</span>
     </>
+  );
+}
+
+function envelopeArtifactBody(
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+) {
+  return (
+    <div className={styles.envelopeEvidence} data-reverse={side === 'back' ? 'true' : 'false'}>
+      <span className={styles.envelopeTape} />
+      <span className={styles.envelopeFlap} />
+      <strong>{side === 'back' ? '22:00 · retiro urgente' : 'Inmobiliaria / retiro previo'}</strong>
+      <p>{side === 'back' ? 'La hora no estaba en la carta. Estaba atrás, escrita para quien dudara.' : 'Cinta nueva. Piso viejo. Nadie deslizó esto hace días.'}</p>
+      <em>{readyClue?.title ?? latestClue?.title ?? (side === 'back' ? 'marca horaria' : 'sobre cerrado')}</em>
+    </div>
+  );
+}
+
+function photoArtifactBody(
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+) {
+  if (side === 'back') {
+    return (
+      <div className={styles.photoBack}>
+        <span>reverso de foto</span>
+        <strong>{readyClue?.title ?? latestClue?.title ?? 'fecha escrita dos veces'}</strong>
+        <p>La tinta fue repasada. La última visita no coincide con la versión familiar.</p>
+        <em>mirar con luz de costado</em>
+      </div>
+    );
+  }
+  return (
+    <div className={styles.photoPrint}>
+      <div className={styles.photoScene}>
+        <i />
+        <i />
+        <i />
+        <span />
+      </div>
+      <strong>{readyClue?.title ?? latestClue?.title ?? 'puerta de servicio abierta'}</strong>
+      <p>Todos sonríen hacia cámara. La puerta del fondo no sonríe: espera.</p>
+    </div>
+  );
+}
+
+function keysArtifactBody(
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+) {
+  return (
+    <div className={styles.keysEvidence} data-base={side === 'base' ? 'true' : 'false'}>
+      <span className={styles.keyRing} />
+      <span className={styles.keyBladeOne} />
+      <span className={styles.keyBladeTwo} />
+      <span className={styles.keyBladeShort} />
+      <em className={styles.missingTag}>{readyClue?.title ?? latestClue?.title ?? 'etiqueta azul arrancada'}</em>
+      <strong>{side === 'base' ? 'El corte brilla abajo' : 'Falta una llave nombrada por todos'}</strong>
+    </div>
+  );
+}
+
+function sensorArtifactBody(
+  latestClue: InspectionClue | undefined,
+  readyClue: InspectionClue | undefined,
+  side: InspectionSide,
+  open: boolean,
+) {
+  return (
+    <div className={styles.sensorEvidence} data-base={side === 'base' ? 'true' : 'false'} data-open={open ? 'true' : 'false'}>
+      <span className={styles.sensorLed} />
+      <span className={styles.sensorScrewA} />
+      <span className={styles.sensorScrewB} />
+      <strong>{readyClue?.title ?? latestClue?.title ?? 'punto rojo'}</strong>
+      <p>{side === 'base' ? 'Etiqueta térmica: demoras, vueltas, obediencia.' : 'Cinta nueva sobre caños viejos. No mide humedad.'}</p>
+    </div>
   );
 }
 
