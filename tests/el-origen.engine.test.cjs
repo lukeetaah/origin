@@ -102,7 +102,7 @@ test('fresh entry gives one immediate concrete goal', () => {
   assert.equal(state.scene, 'door');
   assert.match(state.notice, /cuaderno azul/);
   assert.match(state.notice, /carpeta/);
-  assert.match(state.notice, /22/);
+  assert.match(state.notice, /20:00/);
 
   const entered = applyAction(state, 'enter');
   assert.equal(entered.started, true);
@@ -284,7 +284,7 @@ test('inspection clues, not first clicks, create evidence and progress', () => {
   state = discoverInspectionClue(state, 'administrator-envelope', 'deadline-back');
   assert.equal(state.flags.envelopeRead, true);
   assert.ok(state.evidence.some((item) => item.clueId === 'deadline-back'));
-  assert.match(state.notice, /hora|papel|22/i);
+  assert.match(state.notice, /hora|papel|20/i);
 
   state = applyAction(state, 'openApartmentDoor');
   state = applyAction(state, 'travelKitchen');
@@ -486,7 +486,10 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.match(viewer, /moveLightFromPointer/, 'flashlight follows player movement during inspection');
   assert.match(viewer, /sideFromGesture/, 'objects can be manipulated with gestures instead of only menu buttons');
   assert.match(viewer, /inspectionHelp/, 'inspection shortcuts are collapsed instead of dominating the bottom UI');
+  assert.match(experience, /deadlineFor/, 'the HUD exposes a visible countdown instead of hiding the deadline in prose');
+  assert.match(experience, /ghostPhaseFor/, 'subtle hauntings are directed by scene state');
   assert.match(sceneView, /initialFocusFor/, 'scene flashlight starts on the first narrative object');
+  assert.match(sceneView, /flashlightHandle/, 'the flashlight is visible as a simple in-scene prop');
   assert.match(sceneView, /const interactiveLit = lit \|\| Boolean\(hotspot\.inspectable\)/, 'inspectable hotspots remain interactive even outside the flashlight cone');
   assert.match(experience, /key=\{state\.scene\}/, 'scene changes reset the initial cinematic focus');
   assert.match(viewer, /photoArtifactBody/, 'photos have a dedicated readable body');
@@ -494,6 +497,9 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.match(viewer, /sensorArtifactBody/, 'sensors have a dedicated physical body');
   assert.match(styles, /\.probeButton/, 'visible probe buttons exist on inspected objects');
   assert.match(styles, /\.objectLightPatch/, 'the flashlight visibly changes the object');
+  assert.match(styles, /\.deadlineHud/, 'the deadline has an explicit Mafia-like HUD timer');
+  assert.match(styles, /\.ghostLayer/, 'horror beats can appear and disappear without heavy assets');
+  assert.match(styles, /\.flashlightHandle/, 'the flashlight is represented visually without WebGL');
   assert.match(styles, /\.inspectionHelp/, 'inspection shortcuts are visually secondary');
   assert.match(styles, /\.inspectionHelp:not\(\[open\]\) \.inspectionControls/, 'collapsed inspection shortcuts do not leak the old bottom bar');
   assert.match(styles, /\.inspectionActions/, 'open/read actions are contextual near the object');

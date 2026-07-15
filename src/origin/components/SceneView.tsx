@@ -121,6 +121,9 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
         <div className={styles.grain} aria-hidden="true" />
         <div className={styles.vignette} aria-hidden="true" />
         <div className={styles.flashlight} aria-hidden="true" />
+        <div className={styles.flashlightHandle} aria-hidden="true">
+          <i />
+        </div>
 
         {hotspots.map((hotspot) => {
           const lit = isHotspotLit(hotspot, light);

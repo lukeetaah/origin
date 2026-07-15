@@ -14,6 +14,8 @@ import SceneView from './SceneView';
 import styles from '../styles/elOrigen.module.css';
 
 const devDebugAllowed = process.env.NODE_ENV !== 'production';
+const DEADLINE_TOTAL_SECONDS = 19 * 60;
+const DEADLINE_CLOCK_SECONDS = 20 * 60 * 60;
 
 export default function Experience() {
   const [state, setState] = useState<GameState | null>(null);
@@ -25,6 +27,7 @@ export default function Experience() {
   const [hasContinue, setHasContinue] = useState(false);
   const [coverOpen, setCoverOpen] = useState(true);
   const [inspectionId, setInspectionId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const audioRef = useRef<AudioEngine | null>(null);
   const stateRef = useRef<GameState | null>(null);
 
@@ -66,8 +69,15 @@ export default function Experience() {
     audioRef.current?.setMasterVolume(volume);
   }, [volume]);
 
+  useEffect(() => {
+    if (!state?.started || state.scene === 'ending') return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [state?.scene, state?.started]);
+
   const hotspots = useMemo(() => (state ? visibleHotspots(state) : []), [state]);
   const inspectionObject = inspectionId ? getInspectableObject(inspectionId) : undefined;
+  const deadline = state ? deadlineFor(state, now) : null;
 
   const audio = async () => {
     if (!audioRef.current) audioRef.current = new AudioEngine();
@@ -187,9 +197,12 @@ export default function Experience() {
     return (
       <main className={styles.cover}>
         <section className={styles.coverCard} aria-label="Portada">
-          <p className={styles.paperKicker}>casa de la abuela</p>
+          <p className={styles.paperKicker}>departamento de la abuela</p>
           <h1>EL ORIGEN</h1>
-          <p className={styles.coverBrief}>Volvés por el cuaderno azul y una carpeta. La inmobiliaria llega a las 22.</p>
+          <p className={styles.coverBrief}>
+            Tu abuela murió y te mandan a retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria a las 20:00.
+            La casa no parece vacía: parece esperando testigo.
+          </p>
           <button onClick={() => runAction('enter')} type="button">{enterLabel}</button>
           {hasContinue && <button className={styles.secondaryButton} onClick={() => runAction('continue')} type="button">Continuar</button>}
         </section>
@@ -208,6 +221,19 @@ export default function Experience() {
         onLightFocus={reactToLight}
         state={state}
       />
+      <div className={styles.ghostLayer} data-phase={ghostPhaseFor(state)} data-scene={state.scene} aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </div>
+
+      {deadline && (
+        <aside className={styles.deadlineHud} aria-label="cuenta regresiva de la inmobiliaria">
+          <span>inmobiliaria 20:00</span>
+          <strong>{deadline.remaining}</strong>
+          <em>{deadline.clock}</em>
+        </aside>
+      )}
 
       <aside className={styles.caseNote} aria-label="orden de trabajo">
         <p className={styles.paperKicker}>orden breve</p>
@@ -280,19 +306,19 @@ export default function Experience() {
 }
 
 function objectiveFor(state: GameState) {
-  if (!state.flags.envelopeRead) return { primary: 'Leé el sobre.', secondary: 'Está bajo la puerta.' };
-  if (!state.flags.doorOpened) return { primary: 'Entrá a la casa.', secondary: 'Buscá cuaderno y carpeta.' };
-  if (!state.flags.folderFound && !state.flags.notebookFound) return { primary: 'Buscá cuaderno y carpeta.', secondary: 'La casa está casi vacía.' };
-  if (!state.flags.folderFound) return { primary: 'Abrí una carpeta.', secondary: 'Cocina o dormitorio.' };
-  if (!state.flags.fridgeChecked) return { primary: 'Abrí la heladera.', secondary: 'No huele a abandono.' };
-  if (!state.flags.notebookFound) return { primary: 'Buscá detrás del azulejo.', secondary: 'La carpeta marcó una pared.' };
-  if (!state.flags.servicePlanSeen) return { primary: 'Encontrá el plano.', secondary: 'Seguí la humedad.' };
-  if (!state.flags.behaviorProfileSeen) return { primary: 'Mirá el punto rojo.', secondary: 'No estaba en el plano.' };
-  if (!state.flags.truthUnderstood) return { primary: 'Superponé libreta y plano.', secondary: 'No leas: alinealos.' };
-  if (!state.flags.hiddenPanelOpened) return { primary: 'Abrí el panel.', secondary: 'La pared ya cedió.' };
-  if (state.scene === 'service') return { primary: 'Entrá al hueco.', secondary: 'El panel ya no tapa nada.' };
-  if (!state.flags.valuationReady) return { primary: 'Volvé al living.', secondary: 'La carpeta cambió.' };
-  return { primary: 'Firmá o tachá.', secondary: 'Para exponer, volvé al archivo.' };
+  if (!state.flags.envelopeRead) return { primary: 'Leé el sobre bajo la puerta.', secondary: 'Te citaron antes de la venta.' };
+  if (!state.flags.doorOpened) return { primary: 'Entrá y recuperá lo de tu abuela.', secondary: 'Cuaderno azul + carpeta. Antes de las 20:00.' };
+  if (!state.flags.folderFound && !state.flags.notebookFound) return { primary: 'Buscá las dos pruebas.', secondary: 'Una carpeta visible. Un cuaderno escondido.' };
+  if (!state.flags.folderFound) return { primary: 'Encontrá la carpeta de venta.', secondary: 'Cocina o dormitorio: donde haya papeles.' };
+  if (!state.flags.fridgeChecked) return { primary: 'Revisá la heladera preparada.', secondary: 'La casa no fue abandonada: la armaron así.' };
+  if (!state.flags.notebookFound) return { primary: 'Sacá el cuaderno azul de la pared.', secondary: 'La carpeta marcó el azulejo.' };
+  if (!state.flags.servicePlanSeen) return { primary: 'Buscá el plano oculto.', secondary: 'El pasillo de servicio no figura.' };
+  if (!state.flags.behaviorProfileSeen) return { primary: 'Investigá el punto rojo.', secondary: 'Algo mide cómo obedecés.' };
+  if (!state.flags.truthUnderstood) return { primary: 'Superponé libreta y plano.', secondary: 'Ahí aparece el método contra ella.' };
+  if (!state.flags.hiddenPanelOpened) return { primary: 'Corré el panel falso.', secondary: 'Si golpea, esperá a que termine.' };
+  if (state.scene === 'service') return { primary: 'Entrá al hueco.', secondary: 'La casa escondía archivo, no fantasmas.' };
+  if (!state.flags.valuationReady) return { primary: 'Volvé al living.', secondary: 'La tasación final cambió con tus actos.' };
+  return { primary: 'Decidí qué hacer con la casa.', secondary: 'Firmar, rechazar o exponer el método.' };
 }
 
 function latestNotebookReminder(state: GameState) {
@@ -300,4 +326,36 @@ function latestNotebookReminder(state: GameState) {
   const line = state.notebook.at(-1)?.text;
   if (!line) return null;
   return line.length > 72 ? `${line.slice(0, 69)}...` : line;
+}
+
+function deadlineFor(state: GameState, currentTime: number) {
+  const elapsedSeconds = state.started ? Math.min(DEADLINE_TOTAL_SECONDS, Math.max(0, Math.floor((currentTime - state.startedAt) / 1000))) : 0;
+  const remainingSeconds = Math.max(0, DEADLINE_TOTAL_SECONDS - elapsedSeconds);
+  const clockSeconds = DEADLINE_CLOCK_SECONDS - remainingSeconds;
+  return {
+    remaining: formatDuration(remainingSeconds),
+    clock: formatClock(clockSeconds),
+  };
+}
+
+function formatDuration(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+  const seconds = Math.floor(totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+function formatClock(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+  const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+function ghostPhaseFor(state: GameState) {
+  if (!state.flags.doorOpened) return 'threshold';
+  if (state.scene === 'hallway' && !state.flags.photoMismatch) return 'photo';
+  if (state.scene === 'kitchen' && !state.flags.notebookFound) return 'tile';
+  if (state.scene === 'bedroom' && !state.flags.keyringSeen) return 'bed';
+  if (state.scene === 'service' && !state.flags.hiddenPanelOpened) return 'service';
+  if (state.scene === 'hidden') return 'archive';
+  return state.flags.truthUnderstood ? 'awake' : 'breathing';
 }

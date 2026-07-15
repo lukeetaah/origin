@@ -59,7 +59,7 @@ export function freshGame(memory = createMemory()): GameState {
     evidence: [],
     objectStates: {},
     notebook: openingNotebook(memory),
-    notice: 'Buscás el cuaderno azul y la carpeta antes de las 22.',
+    notice: 'Tu abuela murió. Te mandaron por el cuaderno azul y la carpeta antes de las 20:00.',
     ending: null,
     actions: [],
     route: ['door'],
@@ -109,7 +109,7 @@ export function applyAction(state: GameState, action: ActionId): GameState {
       started: true,
       flags: { ...next.flags, entered: true },
       memory,
-      notice: 'Entraste por el cuaderno azul y la carpeta.',
+      notice: 'Entraste por el cuaderno azul y la carpeta. La inmobiliaria llega a las 20:00.',
     });
   }
 
@@ -120,8 +120,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'envelopeRead'),
         'valuation-order',
         'tramite',
-        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora.',
-        'Cuaderno azul, carpeta, 22:00.',
+        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora y testigo.',
+        'Cuaderno azul, carpeta, 20:00.',
       );
     }
     return travelTo(next, targetScene);
@@ -133,8 +133,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'envelopeRead'),
         'valuation-order',
         'tramite',
-        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora.',
-        'Cuaderno azul, carpeta, 22:00.',
+        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora y testigo.',
+        'Cuaderno azul, carpeta, 20:00.',
       );
 
     case 'inspectPhoto':

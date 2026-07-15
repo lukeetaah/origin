@@ -208,6 +208,36 @@
   transition: opacity .18s ease;
 }
 
+.flashlightHandle {
+  position: absolute;
+  left: clamp(1.5rem, var(--flx, 50%), calc(100% - 1.5rem));
+  bottom: .9rem;
+  z-index: 52;
+  width: 4.2rem;
+  height: 1.35rem;
+  translate: -50% 0;
+  rotate: -2deg;
+  border: 1px solid rgba(232, 211, 141, .3);
+  border-radius: 999px;
+  background:
+    linear-gradient(90deg, rgba(255, 235, 156, .18), rgba(20, 19, 12, .92) 35%, rgba(5, 7, 5, .96)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .08) 0 2px, transparent 2px 7px);
+  box-shadow: 0 0 1.6rem rgba(255, 233, 148, .16), 0 .55rem 1.2rem rgba(0, 0, 0, .55);
+  pointer-events: none;
+}
+
+.flashlightHandle i {
+  position: absolute;
+  left: -.45rem;
+  top: 50%;
+  width: .85rem;
+  height: .85rem;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: rgba(255, 242, 181, .55);
+  box-shadow: 0 0 1.3rem rgba(255, 235, 155, .42);
+}
+
 .hotspot {
   position: absolute;
   z-index: 60;
@@ -236,6 +266,17 @@
   box-shadow: 0 0 1.4rem rgba(230, 205, 123, .25);
   transform: translate(-50%, -50%);
   transition: opacity .2s ease, transform .2s ease, background .2s ease;
+}
+
+.hotspot::after {
+  content: '';
+  position: absolute;
+  inset: .15rem;
+  border: 1px solid rgba(232, 211, 141, 0);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(232, 211, 141, .08), transparent 58%);
+  opacity: 0;
+  transition: opacity .16s ease, border-color .16s ease;
 }
 
 .hotspot[data-lit='false']::before {
@@ -292,6 +333,12 @@
   background: rgba(230, 205, 123, .22);
 }
 
+.hotspot:hover::after,
+.hotspot:focus-visible::after {
+  opacity: .85;
+  border-color: rgba(232, 211, 141, .34);
+}
+
 .hotspot:hover span,
 .hotspot:hover small,
 .hotspot:focus-visible span,
@@ -331,6 +378,10 @@
   }
 
   .probeButton[data-status="ready"] i {
+    animation: none;
+  }
+
+  .ghostLayer i {
     animation: none;
   }
 }
@@ -427,6 +478,131 @@
 .caseNote li {
   margin: .24rem 0;
   line-height: 1.25;
+}
+
+.deadlineHud {
+  position: fixed;
+  right: clamp(.75rem, 2.4vw, 1.6rem);
+  top: clamp(.75rem, 2.4vw, 1.4rem);
+  z-index: 91;
+  width: min(14rem, calc(100vw - 2rem));
+  padding: .72rem .85rem;
+  border: 1px solid rgba(232, 211, 141, .36);
+  background:
+    linear-gradient(90deg, rgba(92, 12, 10, .22), transparent),
+    rgba(4, 8, 5, .78);
+  color: #fff4c8;
+  box-shadow: 0 .9rem 3rem rgba(0, 0, 0, .45);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.deadlineHud span,
+.deadlineHud em {
+  display: block;
+  font: 900 .62rem/1 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.deadlineHud strong {
+  display: block;
+  margin: .28rem 0 .2rem;
+  color: #fff8df;
+  font: 900 clamp(1.35rem, 3vw, 2.1rem)/.9 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  text-shadow: 0 0 1rem rgba(255, 221, 132, .34);
+}
+
+.deadlineHud em {
+  color: #bfe1c8;
+  font-style: normal;
+}
+
+.ghostLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 66;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  overflow: hidden;
+}
+
+.ghostLayer i {
+  position: absolute;
+  opacity: 0;
+  filter: blur(1.2px);
+  transform: translate3d(0, 0, 0);
+  animation: apparition 15s steps(1, end) infinite;
+}
+
+.ghostLayer i:nth-child(1) {
+  width: 5rem;
+  height: 12rem;
+  border-radius: 55% 45% 18% 18%;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(231, 224, 184, .12), transparent 40%),
+    linear-gradient(180deg, rgba(231, 224, 184, .13), rgba(231, 224, 184, 0));
+  animation-delay: 2s;
+}
+
+.ghostLayer i:nth-child(2) {
+  width: 9rem;
+  height: 1px;
+  background: rgba(255, 244, 196, .18);
+  box-shadow: 0 0 1.4rem rgba(255, 244, 196, .16);
+  animation-delay: 7s;
+}
+
+.ghostLayer i:nth-child(3) {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid rgba(255, 235, 170, .18);
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 239, 188, .12), transparent 62%);
+  animation-delay: 11s;
+}
+
+.ghostLayer[data-scene="door"] i:nth-child(1) { left: 74%; top: 19%; }
+.ghostLayer[data-scene="door"] i:nth-child(2) { left: 42%; top: 76%; }
+.ghostLayer[data-scene="hallway"] i:nth-child(1) { left: 9%; top: 42%; }
+.ghostLayer[data-scene="hallway"] i:nth-child(2) { left: 78%; top: 32%; }
+.ghostLayer[data-scene="kitchen"] i:nth-child(1) { left: 61%; top: 17%; }
+.ghostLayer[data-scene="kitchen"] i:nth-child(2) { left: 29%; top: 47%; }
+.ghostLayer[data-scene="bedroom"] i:nth-child(1) { left: 70%; top: 24%; }
+.ghostLayer[data-scene="bedroom"] i:nth-child(2) { left: 18%; top: 64%; }
+.ghostLayer[data-scene="service"] i:nth-child(1) { left: 57%; top: 28%; }
+.ghostLayer[data-scene="service"] i:nth-child(2) { left: 23%; top: 16%; }
+.ghostLayer[data-scene="hidden"] i:nth-child(1) { left: 78%; top: 20%; }
+.ghostLayer[data-scene="hidden"] i:nth-child(2) { left: 47%; top: 54%; }
+.ghostLayer i:nth-child(3) { left: 86%; top: 11%; }
+
+.ghostLayer[data-phase="awake"] i,
+.ghostLayer[data-phase="archive"] i {
+  animation-duration: 10s;
+}
+
+@keyframes apparition {
+  0%,
+  69%,
+  74%,
+  79%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(.98);
+  }
+
+  70% {
+    opacity: .06;
+  }
+
+  72% {
+    opacity: .18;
+    transform: translate3d(.3rem, -.15rem, 0) scale(1.01);
+  }
+
+  77% {
+    opacity: .09;
+  }
 }
 
 .doneObjective {
@@ -1928,6 +2104,17 @@
   .quietControls {
     left: 1rem;
     right: auto;
+  }
+
+  .deadlineHud {
+    right: .75rem;
+    top: .75rem;
+    width: min(10.5rem, 44vw);
+    padding: .58rem .68rem;
+  }
+
+  .deadlineHud strong {
+    font-size: 1.35rem;
   }
 
   .coverCard {

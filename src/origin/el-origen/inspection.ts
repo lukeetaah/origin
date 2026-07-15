@@ -9,11 +9,11 @@ export const inspectionObjects = {
     model: 'document',
     primary: true,
     material: 'paper',
-    instruction: 'Arrastrá el sobre al dorso y barré arriba con la luz.',
-    initialObservation: 'Cinta nueva sobre papel viejo. No lo dejaron: lo prepararon para que entraras a horario.',
-    afterClueObservation: 'El reverso no informa: ordena. Alguien necesitaba que llegaras antes de las 22.',
+    instruction: 'La hora ya está a la vista. Tocá la marca iluminada.',
+    initialObservation: 'Cinta nueva sobre papel viejo. No lo dejaron: lo prepararon para que entraras antes que la inmobiliaria.',
+    afterClueObservation: 'El reverso no informa: ordena. Alguien necesitaba que llegaras antes de las 20:00.',
     clues: [
-      clue('deadline-back', 'back', 'Hora impuesta', 'La inmobiliaria llega a las 22 y alguien te hizo entrar antes.', '¿Quién necesitaba testigo antes de la venta?', 'La hora aparece al inclinar el papel.', 'readEnvelope', true, 'top'),
+      clue('deadline-back', 'back', 'Hora impuesta', 'La inmobiliaria llega a las 20:00 y alguien te hizo entrar antes.', '¿Quién necesitaba testigo antes de la venta?', 'La hora aparece sin pedir permiso.', 'readEnvelope', true, 'top'),
     ],
   },
   'family-photo': {

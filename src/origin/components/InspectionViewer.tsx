@@ -509,7 +509,7 @@ function envelopeArtifactBody(
     <div className={styles.envelopeEvidence} data-reverse={side === 'back' ? 'true' : 'false'}>
       <span className={styles.envelopeTape} />
       <span className={styles.envelopeFlap} />
-      <strong>{side === 'back' ? '22:00 · retiro urgente' : 'Inmobiliaria / retiro previo'}</strong>
+      <strong>{side === 'back' ? '20:00 · retiro urgente' : 'Inmobiliaria / retiro previo'}</strong>
       <p>{side === 'back' ? 'La hora no estaba en la carta. Estaba atrás, escrita para quien dudara.' : 'Cinta nueva. Piso viejo. Nadie deslizó esto hace días.'}</p>
       <em>{readyClue?.title ?? latestClue?.title ?? (side === 'back' ? 'marca horaria' : 'sobre cerrado')}</em>
     </div>
