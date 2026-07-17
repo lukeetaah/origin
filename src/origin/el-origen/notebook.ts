@@ -32,10 +32,10 @@ export function buildNotebook(state: GameState) {
   }));
 
   const fallbackCards = [
-    state.flags.keyringSeen ? { id: 'key', kicker: 'llaves', text: 'La azul no está.', question: '¿Quién la sacó?' } : null,
-    state.flags.notebookFound ? { id: 'notebook', kicker: 'cuaderno', text: 'La abuela anotaba intrusiones.', question: '¿Quién la hizo dudar?' } : null,
-    state.flags.fridgeChecked ? { id: 'fridge', kicker: 'heladera', text: 'No era abandono.', question: '¿Quién preparó la escena?' } : null,
-    state.flags.planOverlayDone ? { id: 'overlay', kicker: 'plano', text: 'Plano y libreta encajan.', question: '¿Qué repite la casa?' } : null,
+    state.flags.keyringSeen ? { id: 'key', kicker: 'llaves', text: 'Separaron la azul para Tomás.', question: '¿Qué abrió durante la primera visita?' } : null,
+    state.flags.notebookFound ? { id: 'notebook', kicker: 'cuaderno', text: 'Sus iniciales corrigen el protocolo.', question: '¿Cuántas instrucciones llegó a cumplir?' } : null,
+    state.flags.fridgeChecked ? { id: 'fridge', kicker: 'heladera', text: 'El abandono fue armado después.', question: '¿Por qué Tomás figura en la lista?' } : null,
+    state.flags.planOverlayDone ? { id: 'overlay', kicker: 'plano', text: 'Cada recorrido termina en T.F.', question: '¿Está investigando o repitiendo?' } : null,
   ].filter((card): card is { id: string; kicker: string; text: string; question: string } => Boolean(card));
 
   const visibleCards = cards.length > 0 ? cards : fallbackCards.slice(0, 5);
@@ -48,21 +48,21 @@ export function buildNotebook(state: GameState) {
   }));
 
   const mutations = [
-    state.flags.ledgerDecoded ? '"Cuidado" → "desgaste".' : '',
-    state.flags.objectMovedAfterInspection ? 'Una foto cambió cuando quedó fuera de luz.' : '',
-    state.flags.behaviorProfileSeen ? 'Nueva columna: demora / duda / precio.' : '',
-    state.flags.planOverlayDone ? 'Plano + libreta: encajan.' : '',
-    state.flags.valuationReady ? 'La carpeta cambió de cifra.' : '',
-    state.memory.endings.length > 0 ? 'La casa recuerda otra entrada.' : '',
-    state.flags.nameWritten ? 'La última línea tiene nombre.' : '',
+    state.flags.ledgerDecoded ? '“Cuidado” fue tachado. Abajo: “desgaste”. La corrección es de T.F.' : '',
+    state.flags.objectMovedAfterInspection ? 'La foto cambió al quedar fuera de luz. Ahora Tomás aparece detrás de la cámara.' : '',
+    state.flags.behaviorProfileSeen ? 'Nueva columna: demora / duda / obediencia. Los tiempos coinciden.' : '',
+    state.flags.planOverlayDone ? 'Plano + libreta: cada engaño termina en T.F.' : '',
+    state.flags.valuationReady ? 'La carpeta ya había marcado firma y rechazo.' : '',
+    state.memory.endings.length > 0 ? 'La casa conservó la elección anterior. También conservó el tiempo que tomó.' : '',
+    state.flags.nameWritten ? 'La última línea completa la primera firma.' : '',
   ].filter(Boolean);
 
   return {
     heading: 'Libreta azul',
     summary: immediateSummary(state),
     hand: state.flags.notebookFound
-      ? 'Hallazgos breves. El archivo largo queda abajo.'
-      : 'Todavía falta encontrarla.',
+      ? 'Las páginas no acusan a la familia: registran a Tomás.'
+      : 'Mamá pidió encontrarla sin leerla.',
     lines: state.notebook,
     cards: visibleCards,
     connections,
@@ -72,11 +72,11 @@ export function buildNotebook(state: GameState) {
 }
 
 function immediateSummary(state: GameState) {
-  if (!state.flags.envelopeRead) return 'Entré por cuaderno y carpeta.';
-  if (!state.flags.notebookFound) return 'Falta el cuaderno azul.';
-  if (!state.flags.servicePlanSeen) return 'El servicio es la ruta.';
-  if (!state.flags.behaviorProfileSeen) return 'El punto rojo mide algo.';
-  if (!state.flags.truthUnderstood) return 'Plano y cuaderno deben cruzarse.';
-  if (!state.flags.valuationReady) return 'La venta depende del relato.';
-  return 'Elegí qué versión sale de la casa.';
+  if (!state.flags.envelopeRead) return 'Mamá pidió retirar pruebas, no recuerdos.';
+  if (!state.flags.notebookFound) return 'La casa siguió encendida para esta visita.';
+  if (!state.flags.servicePlanSeen) return 'El cuaderno tiene correcciones de T.F.';
+  if (!state.flags.behaviorProfileSeen) return 'El pasillo borrado termina en sus iniciales.';
+  if (!state.flags.truthUnderstood) return 'El punto rojo recuerda una visita idéntica.';
+  if (!state.flags.valuationReady) return 'Tomás no investiga el protocolo: lo repite.';
+  return 'Hasta la negativa ya estaba escrita.';
 }

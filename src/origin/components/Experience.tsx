@@ -204,7 +204,7 @@ export default function Experience() {
   if (!state) {
     return (
       <main className={styles.black}>
-        <p>La casa abre la cerradura...</p>
+        <p>La casa abre la cerradura desde adentro...</p>
       </main>
     );
   }
@@ -248,8 +248,8 @@ export default function Experience() {
           <h1>EL ORIGEN</h1>
           <div className={styles.prologueCopy}>
             <p>La inmobiliaria llega a las ocho.</p>
-            <p>Sacá el cuaderno azul y la carpeta.</p>
-            <p>La abuela sigue internada. Nadie entró desde marzo.</p>
+            <p>Sacá el cuaderno azul y la carpeta. No leas nada.</p>
+            <p>La abuela sigue internada. Si encontrás tu firma, no vuelvas a llamarme.</p>
           </div>
           <button onClick={hasContinue ? beginFreshRun : () => runAction('enter')} type="button">
             {hasContinue ? 'Nueva partida' : enterLabel}
@@ -350,17 +350,17 @@ export default function Experience() {
 }
 
 function objectiveFor(state: GameState) {
-  if (!state.flags.envelopeRead) return { primary: 'Abrí el sobre.', secondary: '' };
-  if (!state.flags.doorOpened) return { primary: 'Entrá al departamento.', secondary: '' };
-  if (!state.flags.folderFound) return { primary: 'Buscá la carpeta.', secondary: '' };
-  if (!state.flags.notebookFound) return { primary: 'Encontrá el cuaderno azul.', secondary: '' };
-  if (!state.flags.servicePlanSeen) return { primary: 'Revisá el pasillo de servicio.', secondary: '' };
-  if (!state.flags.behaviorProfileSeen) return { primary: 'Tocá el punto rojo.', secondary: '' };
-  if (!state.flags.truthUnderstood) return { primary: 'Uní cuaderno y plano.', secondary: '' };
-  if (!state.flags.hiddenPanelOpened) return { primary: 'Abrí el panel.', secondary: '' };
-  if (state.scene === 'service') return { primary: 'Entrá al hueco.', secondary: '' };
-  if (!state.flags.valuationReady) return { primary: state.scene === 'living' ? 'Abrí la tasación.' : 'Volvé al living.', secondary: '' };
-  return { primary: 'Elegí qué sale de la casa.', secondary: '' };
+  if (!state.flags.envelopeRead) return { primary: 'Abrí el sobre que dejaron a tu nombre.', secondary: '' };
+  if (!state.flags.doorOpened) return { primary: 'Entrá. A las 20:00 van a retirar lo que falta.', secondary: '' };
+  if (!state.flags.folderFound) return { primary: 'Encontrá la carpeta que mamá nombró primero.', secondary: '' };
+  if (!state.flags.notebookFound) return { primary: 'Buscá el cuaderno antes que llegue la inmobiliaria.', secondary: '' };
+  if (!state.flags.servicePlanSeen) return { primary: 'Seguí la ruta que la familia borró.', secondary: '' };
+  if (!state.flags.behaviorProfileSeen) return { primary: 'Dejá que el punto rojo termine de reconocerte.', secondary: '' };
+  if (!state.flags.truthUnderstood) return { primary: 'Superponé el plano con tus correcciones.', secondary: '' };
+  if (!state.flags.hiddenPanelOpened) return { primary: 'Abrí el panel que ya sabe de qué lado estás.', secondary: '' };
+  if (state.scene === 'service') return { primary: 'Entrá donde termina la primera visita.', secondary: '' };
+  if (!state.flags.valuationReady) return { primary: state.scene === 'living' ? 'Abrí la elección que ya firmaste.' : 'Volvé al living. Tu elección ya está impresa.', secondary: '' };
+  return { primary: 'Elegí. El expediente sólo mide cuánto tardás.', secondary: '' };
 }
 
 function deadlineFor(state: GameState, currentTime: number) {
@@ -400,24 +400,24 @@ function endingPresentation(ending: EndingId | null) {
     aria: 'Tasación firmada y retirada de la casa.',
     kicker: 'tasación aceptada',
     mark: 'FIRMADO',
-    lastLine: 'La planilla ya decía: “firmará”.',
+    lastLine: 'La última hoja no dice «vendió». Dice «volvió a obedecer».',
   };
   if (ending === 'exponer') return {
     aria: 'Expediente atado con todas las pruebas del método.',
     kicker: 'archivo completo',
     mark: 'COPIA AFUERA',
-    lastLine: 'El archivo ya decía: “hará una copia”.',
+    lastLine: 'No hiciste una copia para salir. Completaste el original.',
   };
   if (ending === 'despertar') return {
     aria: 'Cuaderno azul colgado sobre el plano de la casa.',
     kicker: 'nombre agregado',
     mark: 'NO SE VENDE',
-    lastLine: 'Tu letra coincide con la visita anterior.',
+    lastLine: 'La advertencia y la autorización usan la misma mano.',
   };
   return {
     aria: 'Tasación cruzada con una tachadura de rechazo.',
     kicker: 'precio rechazado',
     mark: 'NO',
-    lastLine: 'La planilla ya decía: “tachará”.',
+    lastLine: 'Negarte era la última conducta que faltaba registrar.',
   };
 }

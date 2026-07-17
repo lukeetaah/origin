@@ -160,11 +160,11 @@ function Artifact({ object, open, phase, revealed }: { object: InspectableObject
           <span>ADMINISTRACIÓN · copia</span>
           <strong>LUZ PAGADA · 11 JUN</strong>
           <p>Internación registrada: 03 JUN</p>
-          <em>Firma: A. Ferrero</em>
+          <em>Cuenta debitada: TOMÁS F.</em>
         </div>
         <div aria-hidden={open} className={styles.envelopeFront}>
-          <span>PARA LUCAS</span>
-          <strong>RETIRAR ANTES DE LAS 20:00</strong>
+          <span>PARA TOMÁS FERRERO</span>
+          <strong>SEGUNDA VISITA · RETIRAR ANTES DE LAS 20:00</strong>
         </div>
         <div className={styles.envelopeFlap} />
       </div>
@@ -195,9 +195,9 @@ function Artifact({ object, open, phase, revealed }: { object: InspectableObject
       <div className={styles.sensorArtifactSimple} data-revealed={revealed ? 'true' : 'false'}>
         <i />
         <div aria-hidden={!revealed}>
-          <span>PERFIL: LUCAS F.</span>
+          <span>PERFIL: TOMÁS F.</span>
           <strong>VISITA 02</strong>
-          <p>SOBRE 19:43 · COCINA PREVISTA</p>
+          <p>DEMORA 00:17 · COINCIDE CON VISITA 01</p>
         </div>
       </div>
     );
@@ -217,9 +217,9 @@ function Artifact({ object, open, phase, revealed }: { object: InspectableObject
 }
 
 function ArtifactCopy({ id }: { id: string }) {
-  if (id === 'kitchen-folder') return <><span>OFERTA · 02 JUN</span><strong>INTERNACIÓN · 03 JUN</strong><p>Condición: “casa abandonada”.</p><em>Firma requerida: Lucas F.</em></>;
-  if (id === 'blue-notebook') return <><span>VISITAS</span><strong>Cortar luz. Mover muebles.</strong><p>Repetir: “te estás confundiendo”.</p><em>Lucas: segunda visita.</em></>;
-  if (id === 'service-plan') return <><span>PLANO REGISTRADO</span><strong>El servicio fue borrado.</strong><p>La pared conserva la ruta.</p><em>Entrada azul.</em></>;
-  if (id === 'valuation-folder') return <><span>OPERACIÓN · 17 JUN</span><strong>SELECCIÓN REGISTRADA</strong><p>Firma cargada: Lucas F.</p><em>Resultado pendiente.</em></>;
+  if (id === 'kitchen-folder') return <><span>OFERTA · 02 JUN</span><strong>INTERNACIÓN · 03 JUN</strong><p>Ingreso autorizado: Tomás Ferrero.</p><em>Firma verificada: T. F.</em></>;
+  if (id === 'blue-notebook') return <><span>PROTOCOLO · VISITA 01</span><strong>Cortar luz. Mover muebles.</strong><p>Si pregunta, repetir: «te estás confundiendo».</p><em>Correcciones: T. F.</em></>;
+  if (id === 'service-plan') return <><span>PLANO REGISTRADO</span><strong>Un engaño por habitación.</strong><p>Todos los recorridos terminan en T. F.</p><em>Entrada azul.</em></>;
+  if (id === 'valuation-folder') return <><span>OPERACIÓN · 17 JUN</span><strong>CONDUCTA YA VERIFICADA</strong><p>Firmará / se resistirá: registrado.</p><em>Tomás Ferrero · visita 02.</em></>;
   return <><span>ARCHIVO</span><strong>Una fecha no coincide.</strong><p>La casa seguía en uso.</p></>;
 }

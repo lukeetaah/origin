@@ -187,9 +187,29 @@ test('inspection system gives every physical object one explicit interaction pat
     assert.ok(object.afterClueObservation.split(/\s+/).length <= 18, `${object.id} clue observation is short`);
     for (const clue of object.clues) {
       assert.ok(clue.fact.split(/\s+/).length <= 18, `${object.id}/${clue.id} fact is short`);
+      assert.ok(clue.question.length > 12, `${object.id}/${clue.id} turns evidence into a disturbing question`);
       assert.equal(Boolean(clue.requiresOpen), object.pattern === 'open', `${object.id}/${clue.id} opening gate matches its pattern`);
     }
   }
+});
+
+test('narrative copy escalates from family fraud to the protagonist own prior involvement', () => {
+  const copy = [
+    ...Object.values(inspectionObjects).flatMap((object) => [
+      object.initialObservation,
+      object.afterClueObservation,
+      object.changedObservation ?? '',
+      ...object.clues.flatMap((clue) => [clue.fact, clue.question]),
+    ]),
+    fs.readFileSync(path.join(process.cwd(), 'src/origin/el-origen/game.ts'), 'utf8'),
+    fs.readFileSync(path.join(process.cwd(), 'src/origin/components/InspectionViewer.tsx'), 'utf8'),
+  ].join('\n');
+
+  assert.match(copy, /antes de internarla|ambulancia/i, 'the family timeline is incriminating');
+  assert.match(copy, /tu firma|tus iniciales|T\. F\./i, 'material evidence implicates the protagonist');
+  assert.match(copy, /visita 01|visita anterior|primera visita/i, 'the current run echoes a prior visit');
+  assert.match(copy, /Tomás Ferrero/i, 'the fictional protagonist has one explicit identity');
+  assert.doesNotMatch(copy, /Lucas/i, 'the player real name is not used');
 });
 
 test('scene hotspots keep flashlight metadata without blocking narrative objects', () => {
@@ -291,7 +311,7 @@ test('inspection clues, not first clicks, create evidence and progress', () => {
   state = discoverInspectionClue(state, 'administrator-envelope', 'utility-after-admission');
   assert.equal(state.flags.envelopeRead, true);
   assert.ok(state.evidence.some((item) => item.clueId === 'utility-after-admission'));
-  assert.match(state.notice, /luz|internarla/i);
+  assert.match(state.notice, /encendida|nombre/i);
 
   state = applyAction(state, 'openApartmentDoor');
   state = applyAction(state, 'travelKitchen');
@@ -335,7 +355,7 @@ test('the strong startle is earned by flashlight focus on the opened route and o
   state = triggerFlashlightEvent(state, 'hidden-panel');
   assert.equal(state.flags.strongStartleUsed, true);
   assert.equal(state.director.strongStartleUsed, true);
-  assert.match(state.notice, /panel golpea/);
+  assert.match(state.notice, /panel devuelve/);
 
   const notice = state.notice;
   state = triggerFlashlightEvent(state, 'hidden-panel');
@@ -421,7 +441,7 @@ test('a fourth anomalous possibility appears only after the house remembers a pr
   assert.equal(findHotspot(second, 'write-name')?.action, 'writeNameAndHangNotebook');
   const fourth = applyAction(second, 'writeNameAndHangNotebook');
   assert.equal(fourth.ending, 'despertar');
-  assert.match(fourth.notice, /letra anterior/);
+  assert.match(fourth.notice, /tinta completa/);
 });
 
 test('corrupt saves recover into a clean entry instead of mixing old state', () => {
@@ -442,7 +462,7 @@ test('abandoned sustained interactions are tracked but do not rewrite truth', ()
 });
 
 test('visible EL ORIGEN content is not contaminated by retired identities, brands or borrowed IP', () => {
-  const banned = /(RUPTURA|Nora|Elda|casillero|Mutual|La Espera|Juli[aá]n|Malena|Sosa|SIAM|Di Tella|Mario|Bros|Estanciero|Puccio|Maradona|FIFA|ORIGIN)/i;
+  const banned = /(RUPTURA|Nora|Elda|Lucas|casillero|Mutual|La Espera|Juli[aá]n|Malena|Sosa|SIAM|Di Tella|Mario|Bros|Estanciero|Puccio|Maradona|FIFA|ORIGIN)/i;
   const truth = reachValuation();
   const notebook = buildNotebook(truth);
   const surface = [
