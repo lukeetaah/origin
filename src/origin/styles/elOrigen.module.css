@@ -214,6 +214,7 @@
   clip-path: polygon(0 0, 50% 43%, 100% 0, 100% 100%, 0 100%);
   background: linear-gradient(150deg, #c8b47d, #a48c58);
   color: #392d19;
+  transition: translate .42s ease, filter .42s ease;
 }
 
 .envelopeFront span,
@@ -260,8 +261,25 @@
 .envelopeLetter strong { font: 800 clamp(1rem, 2.5vw, 1.35rem) Georgia, serif; }
 .envelopeLetter p { margin: 0; }
 .envelopeLetter em { color: #7b2d25; font-weight: 800; }
-.envelopeArtifact[data-open='true'] .envelopeLetter { translate: 0 -30%; }
-.envelopeArtifact[data-open='true'] .envelopeFlap { opacity: .22; translate: 0 -20%; }
+.envelopeArtifact[data-open='true'] .envelopeLetter {
+  z-index: 7;
+  translate: 0 -30%;
+}
+
+.envelopeArtifact[data-open='true'] .envelopeFront {
+  translate: 0 17%;
+  filter: brightness(.88);
+}
+
+.envelopeArtifact[data-open='true'] .envelopeFront span,
+.envelopeArtifact[data-open='true'] .envelopeFront strong {
+  opacity: 0;
+}
+
+.envelopeArtifact[data-open='true'] .envelopeFlap {
+  opacity: 0;
+  translate: 0 -24%;
+}
 
 .photoArtifactSimple {
   position: relative;

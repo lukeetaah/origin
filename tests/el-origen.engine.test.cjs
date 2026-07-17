@@ -514,6 +514,7 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.match(sceneView, /const interactiveLit = lit \|\| Boolean\(hotspot\.inspectable\)/, 'inspectable hotspots remain interactive even outside the flashlight cone');
   assert.match(experience, /key=\{state\.scene\}/, 'scene changes reset the initial cinematic focus');
   assert.match(styles, /\.envelopeArtifact/, 'the envelope has a stable paper composition');
+  assert.match(styles, /\.envelopeArtifact\[data-open='true'\] \.envelopeLetter\s*\{[^}]*z-index:\s*7/s, 'opened envelope content rises above the envelope face');
   assert.match(styles, /\.paperArtifactSimple/, 'documents remain contained and readable');
   assert.match(styles, /\.revealPoint/, 'point reveals use one visible target');
   assert.match(styles, /\.coverParticles/, 'the prologue uses cheap procedural atmosphere instead of heavy assets');
