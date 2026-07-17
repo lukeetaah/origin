@@ -98,16 +98,22 @@ function assertNoClickStealing(state, label) {
 
 test('fresh entry gives one immediate concrete goal', () => {
   const state = freshGame();
+  state.startedAt = 1;
   assert.equal(state.started, false);
   assert.equal(state.scene, 'door');
-  assert.match(state.notice, /cuaderno azul/);
+  assert.match(state.notice, /cuaderno azul/i);
   assert.match(state.notice, /carpeta/);
   assert.match(state.notice, /20:00/);
 
   const entered = applyAction(state, 'enter');
   assert.equal(entered.started, true);
-  assert.match(entered.notice, /cuaderno azul/);
+  assert.ok(entered.startedAt > 1, 'the deadline starts at the first real entry, not on the cover');
+  assert.match(entered.notice, /cuaderno azul/i);
   assert.match(entered.notice, /carpeta/);
+
+  const resumed = applyAction(entered, 'continue');
+  assert.equal(resumed.startedAt, entered.startedAt, 'continuing preserves elapsed play time');
+  assert.equal(resumed.memory.entries, entered.memory.entries, 'continuing does not count as another run');
 });
 
 test('apartment door opens immediately and moves to the hallway without arbitrary key gates', () => {
@@ -164,23 +170,24 @@ test('every hotspot is backed by a registered visible object on the same asset',
   }
 });
 
-test('inspection system exposes six physical objects with gated clues', () => {
+test('inspection system gives every physical object one explicit interaction pattern', () => {
   const inspectables = Object.values(inspectionObjects);
   assert.ok(inspectables.length >= 6, 'at least six inspectable objects');
   assert.ok(inspectables.filter((object) => object.primary).length >= 4, 'at least four primary objects');
-  assert.ok(inspectables.filter((object) => object.canOpen || object.canDisassemble).length >= 2, 'at least two openable/disassemblable objects');
+  assert.ok(inspectables.filter((object) => object.pattern === 'open').length >= 2, 'at least two openable objects');
 
   const clueList = allInspectionClues();
-  assert.ok(clueList.filter((clue) => ['back', 'base', 'inside'].includes(clue.side)).length >= 3, 'reverse/base/inside clues');
-  assert.ok(clueList.filter((clue) => clue.requiresLight).length >= 2, 'light-gated clues');
+  assert.equal(clueList.some((clue) => clue.requiresLight), false, 'no clue is blocked behind inspection flashlight aiming');
 
   for (const object of inspectables) {
-    assert.ok(object.initialObservation.length > 20, `${object.id} has first observation`);
-    assert.ok(object.afterClueObservation.length > 20, `${object.id} has clue observation`);
-    assert.ok(object.clues.length >= 1, `${object.id} has at least one clue`);
+    assert.ok(['observe', 'open', 'reveal'].includes(object.pattern), `${object.id} has one supported pattern`);
+    assert.equal(object.clues.length, 1, `${object.id} exposes one focused clue`);
+    assert.ok(object.instruction.split(/\s+/).length <= 8, `${object.id} instruction is short`);
+    assert.ok(object.initialObservation.split(/\s+/).length <= 18, `${object.id} first observation is short`);
+    assert.ok(object.afterClueObservation.split(/\s+/).length <= 18, `${object.id} clue observation is short`);
     for (const clue of object.clues) {
       assert.ok(clue.fact.split(/\s+/).length <= 18, `${object.id}/${clue.id} fact is short`);
-      assert.ok(clue.question.endsWith('?'), `${object.id}/${clue.id} keeps an open question`);
+      assert.equal(Boolean(clue.requiresOpen), object.pattern === 'open', `${object.id}/${clue.id} opening gate matches its pattern`);
     }
   }
 });
@@ -281,27 +288,27 @@ test('the notebook is a quick reminder plus optional archive, not required readi
 
 test('inspection clues, not first clicks, create evidence and progress', () => {
   let state = start();
-  state = discoverInspectionClue(state, 'administrator-envelope', 'deadline-back');
+  state = discoverInspectionClue(state, 'administrator-envelope', 'utility-after-admission');
   assert.equal(state.flags.envelopeRead, true);
-  assert.ok(state.evidence.some((item) => item.clueId === 'deadline-back'));
-  assert.match(state.notice, /hora|papel|20/i);
+  assert.ok(state.evidence.some((item) => item.clueId === 'utility-after-admission'));
+  assert.match(state.notice, /luz|internarla/i);
 
   state = applyAction(state, 'openApartmentDoor');
   state = applyAction(state, 'travelKitchen');
-  state = discoverInspectionClue(state, 'kitchen-folder', 'sale-before-diagnosis');
+  state = discoverInspectionClue(state, 'kitchen-folder', 'sale-before-admission');
   assert.equal(state.flags.folderFound, true);
   assert.ok(state.evidence.some((item) => item.objectId === 'kitchen-folder'));
 
   state = applyAction(state, 'checkFridge');
   state = applyAction(state, 'loosenTile');
-  state = discoverInspectionClue(state, 'blue-notebook', 'protocol-inside');
+  state = discoverInspectionClue(state, 'blue-notebook', 'pressure-script');
   assert.equal(state.flags.notebookFound, true);
   assert.equal(state.carrying, 'notebook');
 
   const notebook = buildNotebook(state);
   assert.ok(notebook.cards.length <= 5);
   assert.ok(notebook.connections.length <= 5);
-  assert.ok(notebook.cards.some((card) => /abuela|intrusiones|oferta/i.test(card.text)));
+  assert.ok(notebook.cards.some((card) => /familia|oferta/i.test(card.text)));
 });
 
 test('flashlight focus can change the house without awarding unrelated facts', () => {
@@ -393,17 +400,17 @@ test('three main endings are reachable through physical choices rather than menu
   const ceded = applyAction(reachValuation(), 'acceptLowPrice');
   assert.equal(ceded.scene, 'ending');
   assert.equal(ceded.ending, 'ceder');
-  assert.match(ceded.notice, /tasación baja/);
+  assert.match(ceded.notice, /formulario/);
 
   const resisted = applyAction(reachValuation(), 'refusePrice');
   assert.equal(resisted.ending, 'resistir');
-  assert.match(resisted.notice, /Rechaz/);
+  assert.match(resisted.notice, /Tachás/);
 
   let exposed = reachValuation();
   exposed = applyAction(exposed, 'travelHidden');
   exposed = applyAction(exposed, 'exposeProtocol');
   assert.equal(exposed.ending, 'exponer');
-  assert.match(exposed.notice, /archivo completo/);
+  assert.match(exposed.notice, /Copiás el archivo/);
 });
 
 test('a fourth anomalous possibility appears only after the house remembers a prior ending', () => {
@@ -414,7 +421,7 @@ test('a fourth anomalous possibility appears only after the house remembers a pr
   assert.equal(findHotspot(second, 'write-name')?.action, 'writeNameAndHangNotebook');
   const fourth = applyAction(second, 'writeNameAndHangNotebook');
   assert.equal(fourth.ending, 'despertar');
-  assert.match(fourth.notice, /tablero vivo/);
+  assert.match(fourth.notice, /letra anterior/);
 });
 
 test('corrupt saves recover into a clean entry instead of mixing old state', () => {
@@ -422,7 +429,7 @@ test('corrupt saves recover into a clean entry instead of mixing old state', () 
   assert.equal(recovered.started, false);
   assert.equal(recovered.scene, 'door');
   assert.equal(recovered.memory.corruptSavesRecovered, 3);
-  assert.match(recovered.notice, /entrada limpia/);
+  assert.match(recovered.notice, /partida anterior/);
 });
 
 test('abandoned sustained interactions are tracked but do not rewrite truth', () => {
@@ -461,7 +468,7 @@ test('object descriptions are concrete and not accidentally duplicated', () => {
       object.initialObservation,
       object.afterClueObservation,
       object.changedObservation ?? '',
-      ...object.clues.flatMap((clue) => [clue.fact, clue.reveal]),
+      ...object.clues.map((clue) => clue.fact),
     ]),
   ].filter(Boolean);
 
@@ -484,44 +491,37 @@ test('inspection interface stays 2D, readable and free of broken WebGL dependenc
   assert.ok(!dependencies.some((name) => name === 'three' || name.startsWith('@react-three/')), 'no three.js runtime dependency');
   assert.doesNotMatch(viewer, /Canvas|WebGL|webgl|react-three|three/i);
   assert.doesNotMatch(styles, /perspective\(|rotateX|rotateY|inspectionCanvas/);
-  assert.match(viewer, /inspectProbe/, 'objects expose explicit tactile inspection');
-  assert.match(viewer, /completesObject/, 'finished inspections close themselves after the last clue');
-  assert.match(viewer, /effectiveLight/, 'inspection auto-focuses light-gated marks instead of blocking them');
-  assert.match(viewer, /visibleSidesFor\(object, open\)/, 'closed interiors are not offered as normal views');
-  assert.match(viewer, /initialInspectionFor/, 'inspection starts on the first readable clue instead of a blank face');
-  assert.match(viewer, /folderArtifactBody/, 'folders render as readable evidence files');
-  assert.match(viewer, /data-envelope="true"/, 'the envelope renders as readable evidence pages');
-  assert.match(viewer, /moveLightFromPointer/, 'flashlight follows player movement during inspection');
-  assert.match(viewer, /sideFromGesture/, 'objects can be manipulated with gestures instead of only menu buttons');
-  assert.match(viewer, /inspectionHelp/, 'inspection shortcuts are collapsed instead of dominating the bottom UI');
-  assert.match(experience, /prologueCopy/, 'the game opens with a contextual black-screen prologue');
-  assert.match(experience, /Tu abuela murió/, 'the prologue clearly states the inciting death');
+  assert.match(viewer, /EnvelopeState = 'closed' \| 'opening' \| 'open'/, 'the envelope uses an explicit three-state machine');
+  assert.match(viewer, /window\.setTimeout\(\(\) => \{\s+setPhase\('open'\)/, 'opening completes through a timeout fallback');
+  assert.match(viewer, /data-envelope-state/, 'envelope state is exposed for deterministic QA');
+  assert.match(viewer, /object\.pattern === 'open'/, 'opening is one explicit pattern');
+  assert.match(viewer, /object\.pattern === 'observe'/, 'observation is one explicit pattern');
+  assert.match(viewer, /object\.pattern === 'reveal'/, 'press-to-reveal is one explicit pattern');
+  assert.match(viewer, /event\.target === event\.currentTarget/, 'clicking outside closes inspection safely');
+  assert.match(viewer, /event\.key === 'Escape'/, 'Escape closes inspection safely');
+  assert.match(viewer, /envelopeArtifact/, 'the envelope has a dedicated stable composition');
+  assert.match(viewer, /photoArtifactSimple/, 'photos have a dedicated readable body');
+  assert.match(viewer, /keyArtifactSimple/, 'keys have a dedicated physical body');
+  assert.match(viewer, /sensorArtifactSimple/, 'sensors have a dedicated physical body');
+  assert.match(experience, /prologueCopy/, 'the game opens with a brief family call');
+  assert.match(experience, /La abuela sigue internada/, 'the prologue states the family version concretely');
   assert.match(experience, /deadlineFor/, 'the HUD exposes a visible countdown instead of hiding the deadline in prose');
   assert.match(experience, /ghostPhaseFor/, 'subtle hauntings are directed by scene state');
   assert.match(sceneView, /initialFocusFor/, 'scene flashlight starts on the first narrative object');
+  assert.match(sceneView, /preload\.onerror = \(\) => setBackgroundFailed\(true\)/, 'missing scene images switch to a controlled fallback');
+  assert.match(sceneView, /data-asset-fallback/, 'asset fallback state is exposed for QA');
   assert.match(sceneView, /flashlightHandle/, 'the flashlight is visible as a simple in-scene prop');
   assert.match(sceneView, /const interactiveLit = lit \|\| Boolean\(hotspot\.inspectable\)/, 'inspectable hotspots remain interactive even outside the flashlight cone');
   assert.match(experience, /key=\{state\.scene\}/, 'scene changes reset the initial cinematic focus');
-  assert.match(viewer, /photoArtifactBody/, 'photos have a dedicated readable body');
-  assert.match(viewer, /keysArtifactBody/, 'keys have a dedicated physical body');
-  assert.match(viewer, /sensorArtifactBody/, 'sensors have a dedicated physical body');
-  assert.match(styles, /\.probeButton/, 'visible probe buttons exist on inspected objects');
-  assert.match(styles, /\.objectLightPatch/, 'the flashlight visibly changes the object');
+  assert.match(styles, /\.envelopeArtifact/, 'the envelope has a stable paper composition');
+  assert.match(styles, /\.paperArtifactSimple/, 'documents remain contained and readable');
+  assert.match(styles, /\.revealPoint/, 'point reveals use one visible target');
   assert.match(styles, /\.coverParticles/, 'the prologue uses cheap procedural atmosphere instead of heavy assets');
-  assert.match(styles, /\.prologueRules/, 'the opening gives playable context before interaction');
   assert.match(styles, /\.deadlineHud/, 'the deadline has an explicit Mafia-like HUD timer');
   assert.match(styles, /\.ghostLayer/, 'horror beats can appear and disappear without heavy assets');
   assert.match(styles, /\.flashlightHandle/, 'the flashlight is represented visually without WebGL');
-  assert.match(styles, /\.inspectionHelp/, 'inspection shortcuts are visually secondary');
-  assert.match(styles, /\.inspectionHelp:not\(\[open\]\) \.inspectionControls/, 'collapsed inspection shortcuts do not leak the old bottom bar');
-  assert.match(styles, /\.inspectionActions/, 'open/read actions are contextual near the object');
-  assert.match(styles, /\.folderEvidence/, 'open folders show readable evidence pages');
-  assert.match(styles, /\.folderEvidence\[data-envelope="true"\]/, 'envelope evidence uses the same readable page language');
-  assert.match(styles, /\.documentPage/, 'document pages replace abstract pseudo-objects');
-  assert.match(styles, /\.gesturePrompt/, 'gesture instructions are diegetic and visible');
-  assert.match(styles, /\.photoPrint/, 'photo inspection is not a generic rectangle');
-  assert.match(styles, /\.keysEvidence/, 'keyring inspection is not a generic rectangle');
-  assert.match(styles, /\.sensorEvidence/, 'sensor inspection is not a generic rectangle');
+  assert.match(styles, /\.inspectionClose/, 'close control stays visible and keyboard focusable');
+  assert.match(styles, /object-fit:\s*contain|aspect-ratio/, 'object proportions remain bounded');
 });
 
 test('Vercel remains a Next app build and does not target static out', () => {
@@ -530,4 +530,5 @@ test('Vercel remains a Next app build and does not target static out', () => {
   assert.doesNotMatch(nextConfig, /output:\s*['"]export['"]/);
   assert.equal(vercel.framework, 'nextjs');
   assert.equal(vercel.outputDirectory, '.next');
+  assert.equal(vercel.rewrites, undefined, 'Vercel must let Next route its own assets and runtime files');
 });

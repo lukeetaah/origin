@@ -27,6 +27,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
   const [pointer, setPointer] = useState(initialFocus);
   const [light, setLight] = useState(initialFocus);
   const [holding, setHolding] = useState<HoldingState | null>(null);
+  const [backgroundFailed, setBackgroundFailed] = useState(false);
   const holdTimer = useRef<number | null>(null);
   const holdCompleted = useRef(false);
 
@@ -50,6 +51,18 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
   }, [pointer.x, pointer.y]);
+
+  useEffect(() => {
+    if (scene.background.kind !== 'image') return;
+    const preload = new window.Image();
+    preload.onerror = () => setBackgroundFailed(true);
+    const simulateMissing = process.env.NODE_ENV !== 'production'
+      && new URLSearchParams(window.location.search).get('missingAsset') === '1';
+    preload.src = simulateMissing ? '/__qa_missing_scene__.png' : scene.background.src;
+    return () => {
+      preload.onerror = null;
+    };
+  }, [scene.background]);
 
   const litFocus = hotspots.find((hotspot) => hotspot.requiresLight && isHotspotLit(hotspot, light));
 
@@ -85,7 +98,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
   };
 
   const backgroundStyle = scene.background.kind === 'image'
-    ? { '--bg': `url(${scene.background.src})` }
+    ? { '--bg': backgroundFailed ? 'linear-gradient(145deg, #4b4635, #25271f 58%, #151812)' : `url(${scene.background.src})` }
     : { '--bg': 'none' };
   const ratio = scene.background.width / scene.background.height;
   const debugHotspots = scene.hotspots.map((hotspot) => ({
@@ -113,6 +126,7 @@ export default function SceneView({ state, hotspots, debug, onHotspot, onHoldAba
       <div
         className={styles.plane}
         data-scene={scene.id}
+        data-asset-fallback={backgroundFailed ? 'true' : 'false'}
         data-visual={scene.background.kind === 'procedural' ? scene.background.style : 'image'}
         style={{ aspectRatio: `${scene.background.width} / ${scene.background.height}` }}
       >

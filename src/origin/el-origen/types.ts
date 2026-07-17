@@ -1,6 +1,6 @@
-export const SAVE_VERSION = 4 as const;
-export const SAVE_KEY = 'el-origen-la-casa-v4';
-export const OLD_SAVE_KEYS = ['el-origen-la-casa-v3', 'el-origen-casa-de-nora-v2'] as const;
+export const SAVE_VERSION = 5 as const;
+export const SAVE_KEY = 'el-origen-la-casa-v5';
+export const OLD_SAVE_KEYS = ['el-origen-la-casa-v4', 'el-origen-la-casa-v3', 'el-origen-casa-de-nora-v2'] as const;
 
 export type SceneId = 'door' | 'hallway' | 'living' | 'kitchen' | 'bedroom' | 'service' | 'hidden' | 'ending';
 
@@ -93,6 +93,7 @@ export type InspectableObjectId = string;
 export type InspectionClueId = string;
 export type InspectionSide = 'front' | 'back' | 'left' | 'right' | 'top' | 'base' | 'inside';
 export type InspectionModelKind = 'photo' | 'document' | 'folder' | 'keys' | 'notebook' | 'cassette' | 'box' | 'sensor' | 'pot';
+export type InspectionPattern = 'observe' | 'open' | 'reveal';
 
 export type Hotspot = {
   id: string;
@@ -174,6 +175,8 @@ export type InspectableObject = {
   scene: Exclude<SceneId, 'ending'>;
   model: InspectionModelKind;
   primary: boolean;
+  pattern: InspectionPattern;
+  actionLabel?: string;
   canOpen?: boolean;
   canDisassemble?: boolean;
   material: 'paper' | 'cardboard' | 'metal' | 'cloth' | 'glass' | 'ceramic' | 'plastic' | 'wood';

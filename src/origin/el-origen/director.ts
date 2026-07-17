@@ -6,7 +6,7 @@ export function observeVisibility(state: GameState, hidden: boolean): GameState 
   const alreadySeen = state.director.tensionEvents?.includes(eventId);
   return {
     ...state,
-    notice: alreadySeen ? state.notice : `Seguías en ${state.scene}. Retomá la pista.`,
+    notice: alreadySeen ? state.notice : 'Un objeto cambió mientras no mirabas.',
     director: {
       ...state.director,
       hiddenWhileActive: state.director.hiddenWhileActive + 1,

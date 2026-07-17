@@ -19,7 +19,7 @@ import {
 import { requirementsMet, sceneRegistry, visibleHotspotsForScene } from './scenes';
 import { findInspectionClue, getInspectableObject } from './inspection';
 
-const finalQuestion = 'La cifra espera.';
+const finalQuestion = 'Tu firma ya figura.';
 
 const routeByAction: Partial<Record<ActionId, Exclude<SceneId, 'ending'>>> = {
   openApartmentDoor: 'hallway',
@@ -59,7 +59,7 @@ export function freshGame(memory = createMemory()): GameState {
     evidence: [],
     objectStates: {},
     notebook: openingNotebook(memory),
-    notice: 'Tu abuela murió. Te mandaron por el cuaderno azul y la carpeta antes de las 20:00.',
+    notice: 'Cuaderno azul y carpeta. Antes de las 20:00.',
     ending: null,
     actions: [],
     route: ['door'],
@@ -100,16 +100,18 @@ export function applyAction(state: GameState, action: ActionId): GameState {
   if (action === 'startAgain') return freshGame(next.memory);
 
   if (action === 'enter' || action === 'continue') {
+    const firstEntry = !next.started;
     const memory = {
       ...next.memory,
-      entries: next.started ? next.memory.entries : next.memory.entries + 1,
+      entries: firstEntry ? next.memory.entries + 1 : next.memory.entries,
     };
     return touch({
       ...next,
       started: true,
+      startedAt: firstEntry ? now : next.startedAt,
       flags: { ...next.flags, entered: true },
       memory,
-      notice: 'Entraste por el cuaderno azul y la carpeta. La inmobiliaria llega a las 20:00.',
+      notice: 'Cuaderno azul y carpeta. Antes de las 20:00.',
     });
   }
 
@@ -120,8 +122,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'envelopeRead'),
         'valuation-order',
         'tramite',
-        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora y testigo.',
-        'Cuaderno azul, carpeta, 20:00.',
+        'Pagaron la luz ocho días después de internarla.',
+        'Pagaron la luz después de internarla.',
       );
     }
     return travelTo(next, targetScene);
@@ -133,8 +135,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'envelopeRead'),
         'valuation-order',
         'tramite',
-        'El sobre pide retirar el cuaderno azul y una carpeta antes de que llegue la inmobiliaria. La venta ya tiene hora y testigo.',
-        'Cuaderno azul, carpeta, 20:00.',
+        'Pagaron la luz ocho días después de internarla.',
+        'Pagaron la luz después de internarla.',
       );
 
     case 'inspectPhoto':
@@ -142,12 +144,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'photoMismatch'),
         'photo-removal',
         'familia',
-        'Las fotos familiares están ordenadas para parecer amorosas, pero los bordes muestran recortes: la casa aprendió a borrar a quienes estorbaban una escritura.',
-        'La foto fue tomada acá.',
+        'La foto fue tomada después del supuesto cierre.',
+        'La foto es reciente.',
       );
       return pushNotebook(next, {
         id: 'photo-gap',
-        text: 'Fotos: nadie desaparece del todo; a veces queda el borde del pegamento.',
+        text: 'La foto es posterior al cierre.',
       });
 
     case 'tuneRadio':
@@ -155,12 +157,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'radioTuned'),
         'cassette-visits',
         'familia',
-        'La cinta registra visitas de cuidado como turnos: quién entraba, quién firmaba, quién lograba que la dueña dudara de su propia memoria.',
-        'La cinta ya estaba a mitad de frase.',
+        'La cinta asigna turnos para repetirle que olvidaba.',
+        'Las voces siguen un guion.',
       );
       return pushNotebook(next, {
         id: 'radio-turns',
-        text: 'Cinta: cuidado no era ternura; era una técnica de desgaste con horario fijo.',
+        text: 'Las llamadas seguían un guion.',
       });
 
     case 'inspectPot':
@@ -168,12 +170,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'potRemembered'),
         'repaired-soup-tureen',
         'familia',
-        'La sopera está soldada cinco veces. La usaban para hablar de sacrificio, pero en los márgenes de la libreta aparece como premio por firmar barato.',
-        'La sopera pesa como una firma.',
+        'La sopera oculta una copia de llave.',
+        'Hay una copia adentro.',
       );
       return pushNotebook(next, {
         id: 'tureen-rule',
-        text: 'Sopera reparada: cuando un objeto se vuelve sagrado, alguien suele estar escondiendo el precio.',
+        text: 'La sopera ocultaba una copia.',
       });
 
     case 'inspectFolder':
@@ -181,12 +183,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'folderFound'),
         'succession-folder',
         'tramite',
-        'La carpeta mezcla sucesión, tasación y un borrador de compraventa. La firma que falta no es un olvido: era el último obstáculo.',
-        'Primero vino el desgaste. Después, el precio.',
+        'La oferta precede la internación y exige tu firma.',
+        'La oferta ya estaba lista.',
       );
       return pushNotebook(next, {
         id: 'folder-dates',
-        text: 'Carpeta: cuando las fechas cierran demasiado bien, la verdad suele estar en lo que dejaron afuera.',
+        text: 'La oferta precede la internación.',
       });
 
     case 'checkFridge':
@@ -194,12 +196,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'fridgeChecked'),
         'fridge-proof',
         'conducta',
-        'La heladera fue preparada para contar una historia de abandono: comida vencida adelante, medicación reciente escondida atrás, recibos nuevos bajo el cajón.',
-        'La heladera fue preparada.',
+        'Hay medicación nueva detrás de comida vencida.',
+        'Prepararon una escena de abandono.',
       );
       return pushNotebook(next, {
         id: 'fridge-staging',
-        text: 'Heladera: si el olor sirve a la tasación, no es descuido; es escenografía.',
+        text: 'La casa no estaba abandonada.',
       });
 
     case 'loosenTile':
@@ -212,17 +214,17 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         next,
         'blue-protocol',
         'protocolo',
-        'La libreta azul no enumera recuerdos. Enumera pasos: aislar, administrar, sugerir deterioro, comprar bajo y convertir la violencia en trámite.',
-        'La libreta no explica. Conecta.',
+        'Anotaron cortes, objetos movidos y frases para hacerla dudar.',
+        'Era un guion familiar.',
       );
       next = pushNotebook(next, {
         id: 'first-protocol',
-        text: 'La casa se abarataba primero en la cabeza.',
+        text: 'La familia anotó cómo desgastarla.',
       });
       if (next.memory.entries > 1) {
         next = pushNotebook(next, {
           id: 'house-remembers',
-          text: 'La casa reconoció otra entrada.',
+          text: 'Ya estuve acá.',
         });
       }
       return next;
@@ -233,7 +235,7 @@ export function applyAction(state: GameState, action: ActionId): GameState {
       }
       next = pushNotebook(next, {
         id: 'notebook-rule',
-        text: 'No escribían presión. Escribían acompañamiento.',
+        text: 'Llamaban “acompañar” a vigilarla.',
       });
       if (next.scene === 'hidden') {
         next = setFlag(setFlag(next, 'registryUnderstood'), 'truthUnderstood');
@@ -241,8 +243,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
           next,
           'hidden-registry',
           'anomalia',
-          'La pared vieja no registra sólo a la familia: registra visitas futuras, pausas, desvíos y decisiones que todavía no tomaste.',
-          'La pared tiene una marca nueva.',
+          'La pared registra tus dos visitas y cada objeto elegido.',
+          'Tu nombre aparece dos veces.',
         );
       }
       return next;
@@ -252,8 +254,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'keyringSeen'),
         'grandmother-keyring',
         'familia',
-        'Las llaves de la abuela tienen etiquetas domésticas: gas, vecina, terraza, pieza fría. Ninguna dice “propiedad”, pero todas prueban uso.',
-        'No está la llave azul.',
+        'La etiqueta azul fue cortada del aro.',
+        'La llave azul fue arrancada.',
       );
 
     case 'watchTV1986':
@@ -261,12 +263,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'tv1986Seen'),
         'tv-1986-signal',
         'anomalia',
-        'La transmisión deportiva de 1986 es ficticia: el relator nombra habitaciones como si fueran posiciones de un tablero y celebra saltos imposibles entre puertas.',
-        'La señal muestra este pasillo.',
+        'La señal enumera el recorrido que acabás de hacer.',
+        'La señal repite tu recorrido.',
       );
       return pushNotebook(next, {
         id: 'tv-board',
-        text: 'La señal sabe hacia dónde miro.',
+        text: 'La señal conoce mi recorrido.',
       });
 
     case 'inspectServicePlan':
@@ -274,8 +276,8 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'servicePlanSeen'),
         'service-plan',
         'protocolo',
-        'El plano bajo la pintura marca recorridos de servicio como posiciones de presión: cada puerta produce una excusa para mover, esperar o cobrar.',
-        'El pasillo no figura en el plano.',
+        'El plano oficial borra el acceso de servicio.',
+        'El servicio fue borrado.',
       );
       return pushNotebook(next, {
         id: 'service-plan',
@@ -287,12 +289,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         setFlag(next, 'behaviorProfileSeen'),
         'behavior-profile',
         'conducta',
-        `El sensor no mide fantasmas: mide tu conducta. Perfil actual: ${behaviorSummary(next)}. La tasación ajusta el precio según docilidad, duda y cansancio.`,
-        'El punto rojo imprime una etiqueta.',
+        'La etiqueta dice LUCAS F., VISITA 02 y anticipa cocina.',
+        'Registró tu segunda visita.',
       );
       return pushNotebook(next, {
         id: 'behavior-profile',
-        text: 'También me están midiendo.',
+        text: 'Esta es mi segunda visita.',
       });
 
     case 'overlayLedgerAndPlan':
@@ -301,17 +303,17 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         next,
         'ledger-plan-overlay',
         'protocolo',
-        'Superpuestos, la libreta y el plano revelan un método: convertir habitaciones en posiciones de deuda, afecto en obligación y obligación en precio final.',
-        'Las marcas encajan.',
+        'Plano y cuaderno asignan una acción familiar a cada cuarto.',
+        'Cada cuarto tenía una función.',
       );
       return pushNotebook(next, {
         id: 'overlay-truth',
-        text: 'La casa fue usada como tablero.',
+        text: 'Usaron la casa como tablero.',
       });
 
     case 'openHiddenPanel':
       next = setFlag(next, 'hiddenPanelOpened');
-      return setNotice(next, 'El panel abre hacia adentro.');
+      return setNotice(next, 'El panel estaba destrabado.');
 
     case 'inspectValuation':
       next = setFlag(next, 'valuationReady');
@@ -319,12 +321,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
         next,
         'behavioral-valuation',
         'tasacion',
-        `La tasación propone un precio bajo y adjunta un anexo conductual: ${behaviorSummary(next)}. La casa vale menos si aceptás que te apuren.`,
-        'La cifra bajó mientras mirabas.',
+        'La operación figura registrada tres días antes de tu llegada.',
+        'Tu firma ya estaba cargada.',
       );
       return pushNotebook(next, {
         id: 'valuation-choice',
-        text: 'El precio mide cansancio.',
+        text: 'La venta ya figuraba registrada.',
       });
 
     case 'acceptLowPrice':
@@ -343,12 +345,12 @@ export function applyAction(state: GameState, action: ActionId): GameState {
       next = setFlag(next, 'nameWritten');
       next = pushNotebook(next, {
         id: 'last-empty-line',
-        text: 'Dejo mi nombre para cortar el método.',
+        text: 'Mi letra coincide con la anterior.',
       });
       return finish(next, 'despertar');
 
     case 'wait':
-      return setNotice(trackIgnored(next), 'Algo se acercó cuando esperaste.');
+      return setNotice(trackIgnored(next), 'El ascensor subió un piso.');
 
     default:
       return next;
@@ -360,7 +362,7 @@ export function recoverFromCorruptSave(memory?: OriginMemory) {
     ...(memory ?? {}),
     corruptSavesRecovered: (memory?.corruptSavesRecovered ?? 0) + 1,
   });
-  return setNotice(freshGame(recovered), 'La casa abrió una entrada limpia.');
+  return setNotice(freshGame(recovered), 'La partida anterior no era válida.');
 }
 
 function emptyDirector(): DirectorState {
@@ -476,10 +478,10 @@ export function triggerFlashlightEvent(state: GameState, objectId: InteractiveOb
 
 function openingNotebook(memory: OriginMemory): NotebookLine[] {
   const lines: NotebookLine[] = [
-    { id: 'cover-question', text: 'Vine por el cuaderno azul y la carpeta.' },
+    { id: 'cover-question', text: 'Vine por cuaderno y carpeta.' },
   ];
   if (memory.endings.length > 0) {
-    lines.push({ id: 'after-entry', text: 'La casa se acordó de mí.' });
+    lines.push({ id: 'after-entry', text: 'Ya estuve acá.' });
   }
   if (memory.lastNotebookLine) lines.push({ id: 'memory-last-line', text: memory.lastNotebookLine });
   return lines;
@@ -560,12 +562,12 @@ function evidenceIcon(model: string) {
 }
 
 function flashlightCue(objectId: string) {
-  if (objectId === 'family-photo') return 'Cuando apartás la luz, la foto queda boca abajo.';
-  if (objectId === 'service-plan') return 'La línea borrada brilla y el golpe responde desde la pared.';
-  if (objectId === 'behavior-sensor') return 'El punto rojo parpadea con tu mismo pulso.';
-  if (objectId === 'hidden-panel') return 'Detrás del panel alguien espera a que mires otro lado.';
-  if (objectId === 'blue-notebook') return 'La tapa azul se calienta sólo dentro del haz.';
-  return 'Algo cambió fuera del haz.';
+  if (objectId === 'family-photo') return 'La foto queda boca abajo.';
+  if (objectId === 'service-plan') return 'La pared responde con dos golpes.';
+  if (objectId === 'behavior-sensor') return 'El punto rojo copia tu pulso.';
+  if (objectId === 'hidden-panel') return 'El panel golpea desde adentro.';
+  if (objectId === 'blue-notebook') return 'La tapa azul todavía está tibia.';
+  return 'Un objeto cambió de lugar.';
 }
 
 function travelTo(state: GameState, scene: Exclude<SceneId, 'ending'>): GameState {
@@ -603,12 +605,12 @@ function travelTo(state: GameState, scene: Exclude<SceneId, 'ending'>): GameStat
 function travelNotice(scene: SceneId, visits: number) {
   const sceneInfo = scene === 'ending' ? null : sceneRegistry[scene];
   if (visits > 1 && sceneInfo?.ambient[0]) return `Otra vez: ${sceneInfo.ambient[0]}.`;
-  if (scene === 'hallway') return 'El pasillo escucha.';
-  if (scene === 'living') return 'El televisor espera.';
+  if (scene === 'hallway') return 'La foto familiar tapa el aparador.';
+  if (scene === 'living') return 'El televisor muestra tu recorrido.';
   if (scene === 'kitchen') return 'La heladera zumba.';
   if (scene === 'bedroom') return 'Falta una llave.';
   if (scene === 'service') return 'Los caños golpean dos veces.';
-  if (scene === 'hidden') return `El hueco no explica el secreto. Lo vuelve material. ${finalQuestion}`;
+  if (scene === 'hidden') return `El archivo tiene tu nombre. ${finalQuestion}`;
   return 'El sobre quedó atrás.';
 }
 
@@ -674,27 +676,15 @@ function finish(state: GameState, ending: EndingId): GameState {
 
 function endingNotice(ending: EndingId) {
   if (ending === 'ceder') {
-    return 'Firmás la tasación baja. La operación cierra, la familia respira y la casa queda oficialmente barata. Pero el televisor sigue prendido, esperando otra visita.';
+    return 'Firmás. El formulario ya había marcado esa opción.';
   }
   if (ending === 'resistir') {
-    return 'Rechazás el precio y dejás constancia del método. No ganás una casa limpia: ganás tiempo, prueba y una incomodidad imposible de volver trámite.';
+    return 'Tachás el precio. El formulario ya lo sabía.';
   }
   if (ending === 'exponer') {
-    return 'Preparás el archivo completo: libreta, plano, sensor y tasación. La historia deja de ser familiar y se vuelve denunciable. La casa, por primera vez, no baja la voz.';
+    return 'Copiás el archivo. La instrucción ya decía “copiará”.';
   }
-  return 'Escribís tu nombre en la última línea. La casa no se vende ni se absuelve: despierta como tablero vivo, lista para castigar cualquier nueva administración disfrazada de cuidado.';
-}
-
-function behaviorSummary(state: GameState) {
-  const maxRoute = Math.max(0, ...Object.values(state.director.routeCounts));
-  const traits: string[] = [];
-  if (maxRoute >= 3) traits.push('recorrido repetitivo');
-  if (state.director.heldActionsAbandoned > 0) traits.push('duda ante gestos sostenidos');
-  if (state.director.hiddenWhileActive > 0) traits.push('pausas fuera de foco');
-  if (state.director.ignoredItems.length > 6) traits.push('evitación de objetos visibles');
-  if (state.flags.fridgeChecked && state.flags.folderFound) traits.push('resistencia documental');
-  if (state.flags.tv1986Seen) traits.push('alta tolerancia a señales anómalas');
-  return traits.length > 0 ? traits.join(', ') : 'exploración directa con baja docilidad registrada';
+  return 'Escribís tu nombre. La letra anterior también es tuya.';
 }
 
 function trackIgnored(state: GameState): GameState {

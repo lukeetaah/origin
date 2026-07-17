@@ -7,7 +7,7 @@ import { abandonHeldAction, applyAction, canUseHotspot, discoverInspectionClue, 
 import { observeVisibility } from '../el-origen/director';
 import { clearCurrentSaveForDevelopment, hasValidStoredGame, isolateOldSaves, loadStoredGame, saveStoredGame } from '../el-origen/persistence';
 import { getInspectableObject } from '../el-origen/inspection';
-import { ActionId, GameState, Hotspot } from '../el-origen/types';
+import { ActionId, EndingId, GameState, Hotspot } from '../el-origen/types';
 import InspectionViewer from './InspectionViewer';
 import NotebookPanel from './NotebookPanel';
 import SceneView from './SceneView';
@@ -29,6 +29,7 @@ export default function Experience() {
   const [inspectionId, setInspectionId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const audioRef = useRef<AudioEngine | null>(null);
+  const audioStartedRef = useRef(false);
   const stateRef = useRef<GameState | null>(null);
 
   useEffect(() => {
@@ -70,6 +71,15 @@ export default function Experience() {
   }, [volume]);
 
   useEffect(() => {
+    audioRef.current?.setRoomToneIntensity(Math.min(4, (state?.facts.length ?? 0) / 3));
+  }, [state?.facts.length]);
+
+  useEffect(() => () => {
+    audioRef.current?.destroy();
+    audioRef.current = null;
+  }, []);
+
+  useEffect(() => {
     if (!state?.started || state.scene === 'ending') return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
@@ -83,6 +93,12 @@ export default function Experience() {
     if (!audioRef.current) audioRef.current = new AudioEngine();
     await audioRef.current.unlock();
     audioRef.current.setMasterVolume(volume);
+    if (!audioStartedRef.current) {
+      const current = stateRef.current;
+      audioRef.current.playSceneAmbient(current?.scene ?? 'door');
+      audioRef.current.setRoomToneIntensity(Math.min(4, (current?.facts.length ?? 0) / 3));
+      audioStartedRef.current = true;
+    }
     return audioRef.current;
   };
 
@@ -97,7 +113,11 @@ export default function Experience() {
   const playFor = (hotspot?: Hotspot, action?: ActionId) => {
     void audio().then((engine) => {
       const sound = hotspot?.sound;
-      if (sound === 'paper') engine.playPaperRustle();
+      if (action === 'acceptLowPrice' || action === 'refusePrice' || action === 'exposeProtocol' || action === 'writeNameAndHangNotebook') {
+        engine.playStamp();
+        engine.playHoldSilence();
+      }
+      else if (sound === 'paper') engine.playPaperRustle();
       else if (sound === 'door') engine.playCreak(72);
       else if (sound === 'ceramic') engine.playLocker();
       else if (sound === 'radio') engine.playTVStatic(0.18, 1200);
@@ -135,6 +155,17 @@ export default function Experience() {
     playFor(hotspot, action);
   };
 
+  const beginFreshRun = () => {
+    const current = stateRef.current ?? state;
+    if (!current) return;
+    const fresh = applyAction(applyAction(current, 'startAgain'), 'enter');
+    commit(fresh);
+    setInspectionId(null);
+    setNotebookOpen(false);
+    setCoverOpen(false);
+    void audio().then((engine) => engine.playCreak(68)).catch(() => {});
+  };
+
   const abandonHold = () => {
     const current = stateRef.current ?? state;
     if (!current) return;
@@ -166,6 +197,10 @@ export default function Experience() {
     }).catch(() => {});
   };
 
+  const manipulateObject = () => {
+    void audio().then((engine) => engine.playPaperRustle()).catch(() => {});
+  };
+
   if (!state) {
     return (
       <main className={styles.black}>
@@ -175,13 +210,19 @@ export default function Experience() {
   }
 
   if (state.scene === 'ending') {
+    const ending = endingPresentation(state.ending);
     return (
       <main className={styles.endingShell}>
         <section className={styles.endingPaper}>
-          <p className={styles.paperKicker}>La casa guarda esta versión</p>
+          <p className={styles.paperKicker}>resultado registrado</p>
           <h1>EL ORIGEN</h1>
+          <div className={styles.endingArtifact} data-ending={state.ending ?? 'resistir'} aria-label={ending.aria}>
+            <span>{ending.kicker}</span>
+            <strong>{ending.mark}</strong>
+            <i />
+          </div>
           <p>{state.notice}</p>
-          <p className={styles.finalQuestion}>¿Cuánto vale una casa cuando por fin deja de obedecer?</p>
+          <p className={styles.finalQuestion}>{ending.lastLine}</p>
           <div className={styles.endingActions}>
             <button onClick={() => runAction('startAgain')} type="button">Volver a entrar</button>
             {state.notebook.length > 0 && <button onClick={() => setNotebookOpen(true)} type="button">abrir libreta</button>}
@@ -203,19 +244,16 @@ export default function Experience() {
           <i />
         </div>
         <section className={styles.coverCard} aria-label="Prólogo">
-          <p className={styles.paperKicker}>llamado · 19:41</p>
+          <p className={styles.paperKicker}>mamá · 19:41</p>
           <h1>EL ORIGEN</h1>
           <div className={styles.prologueCopy}>
-            <p>Tu abuela murió hace unas horas.</p>
-            <p>La familia no discute el duelo: discute papeles. Te avisan que vayas al departamento antes de las 20:00 y retires dos cosas: el cuaderno azul y una carpeta.</p>
-            <p>No hay héroe definido. Sos quien todavía recuerda el olor del pasillo, la mesa de hule, una llave que sonaba distinto. La casa está vacía, pero no callada.</p>
+            <p>La inmobiliaria llega a las ocho.</p>
+            <p>Sacá el cuaderno azul y la carpeta.</p>
+            <p>La abuela sigue internada. Nadie entró desde marzo.</p>
           </div>
-          <ol className={styles.prologueRules} aria-label="situación inicial">
-            <li>Entrá antes que la inmobiliaria.</li>
-            <li>Encontrá cuaderno y carpeta.</li>
-            <li>Si algo aparece en la luz, no mires tarde.</li>
-          </ol>
-          <button onClick={() => runAction('enter')} type="button">{enterLabel}</button>
+          <button onClick={hasContinue ? beginFreshRun : () => runAction('enter')} type="button">
+            {hasContinue ? 'Nueva partida' : enterLabel}
+          </button>
           {hasContinue && <button className={styles.secondaryButton} onClick={() => runAction('continue')} type="button">Continuar</button>}
         </section>
       </main>
@@ -253,18 +291,11 @@ export default function Experience() {
         {objectiveFor(state).secondary && <p className={styles.secondaryObjective}>{objectiveFor(state).secondary}</p>}
       </aside>
 
-      {latestNotebookReminder(state) && (
-        <aside className={styles.notePulse} aria-label="apunte de libreta">
-          <span>libreta</span>
-          {latestNotebookReminder(state)}
-        </aside>
-      )}
-
       {state.scene === 'living' && state.flags.tv1986Seen && (
         <aside className={styles.tvSignal} aria-label="transmisión ficticia de 1986">
           <p>JUNIO · 1986</p>
-          <strong>LA CASA JUEGA DE LOCAL</strong>
-          <span>avance: cocina → servicio → archivo · deuda visible</span>
+          <strong>SEGUNDA VISITA</strong>
+          <span>cocina → servicio → archivo</span>
         </aside>
       )}
 
@@ -310,6 +341,7 @@ export default function Experience() {
           object={inspectionObject}
           onClose={() => setInspectionId(null)}
           onDiscover={discoverClue}
+          onManipulate={manipulateObject}
           state={state}
         />
       )}
@@ -318,26 +350,17 @@ export default function Experience() {
 }
 
 function objectiveFor(state: GameState) {
-  if (!state.flags.envelopeRead) return { primary: 'Leé el sobre bajo la puerta.', secondary: 'Te citaron antes de la venta.' };
-  if (!state.flags.doorOpened) return { primary: 'Entrá y recuperá lo de tu abuela.', secondary: 'Cuaderno azul + carpeta. Antes de las 20:00.' };
-  if (!state.flags.folderFound && !state.flags.notebookFound) return { primary: 'Buscá las dos pruebas.', secondary: 'Una carpeta visible. Un cuaderno escondido.' };
-  if (!state.flags.folderFound) return { primary: 'Encontrá la carpeta de venta.', secondary: 'Cocina o dormitorio: donde haya papeles.' };
-  if (!state.flags.fridgeChecked) return { primary: 'Revisá la heladera preparada.', secondary: 'La casa no fue abandonada: la armaron así.' };
-  if (!state.flags.notebookFound) return { primary: 'Sacá el cuaderno azul de la pared.', secondary: 'La carpeta marcó el azulejo.' };
-  if (!state.flags.servicePlanSeen) return { primary: 'Buscá el plano oculto.', secondary: 'El pasillo de servicio no figura.' };
-  if (!state.flags.behaviorProfileSeen) return { primary: 'Investigá el punto rojo.', secondary: 'Algo mide cómo obedecés.' };
-  if (!state.flags.truthUnderstood) return { primary: 'Superponé libreta y plano.', secondary: 'Ahí aparece el método contra ella.' };
-  if (!state.flags.hiddenPanelOpened) return { primary: 'Corré el panel falso.', secondary: 'Si golpea, esperá a que termine.' };
-  if (state.scene === 'service') return { primary: 'Entrá al hueco.', secondary: 'La casa escondía archivo, no fantasmas.' };
-  if (!state.flags.valuationReady) return { primary: 'Volvé al living.', secondary: 'La tasación final cambió con tus actos.' };
-  return { primary: 'Decidí qué hacer con la casa.', secondary: 'Firmar, rechazar o exponer el método.' };
-}
-
-function latestNotebookReminder(state: GameState) {
-  if (!state.flags.notebookFound) return null;
-  const line = state.notebook.at(-1)?.text;
-  if (!line) return null;
-  return line.length > 72 ? `${line.slice(0, 69)}...` : line;
+  if (!state.flags.envelopeRead) return { primary: 'Abrí el sobre.', secondary: '' };
+  if (!state.flags.doorOpened) return { primary: 'Entrá al departamento.', secondary: '' };
+  if (!state.flags.folderFound) return { primary: 'Buscá la carpeta.', secondary: '' };
+  if (!state.flags.notebookFound) return { primary: 'Encontrá el cuaderno azul.', secondary: '' };
+  if (!state.flags.servicePlanSeen) return { primary: 'Revisá el pasillo de servicio.', secondary: '' };
+  if (!state.flags.behaviorProfileSeen) return { primary: 'Tocá el punto rojo.', secondary: '' };
+  if (!state.flags.truthUnderstood) return { primary: 'Uní cuaderno y plano.', secondary: '' };
+  if (!state.flags.hiddenPanelOpened) return { primary: 'Abrí el panel.', secondary: '' };
+  if (state.scene === 'service') return { primary: 'Entrá al hueco.', secondary: '' };
+  if (!state.flags.valuationReady) return { primary: state.scene === 'living' ? 'Abrí la tasación.' : 'Volvé al living.', secondary: '' };
+  return { primary: 'Elegí qué sale de la casa.', secondary: '' };
 }
 
 function deadlineFor(state: GameState, currentTime: number) {
@@ -370,4 +393,31 @@ function ghostPhaseFor(state: GameState) {
   if (state.scene === 'service' && !state.flags.hiddenPanelOpened) return 'service';
   if (state.scene === 'hidden') return 'archive';
   return state.flags.truthUnderstood ? 'awake' : 'breathing';
+}
+
+function endingPresentation(ending: EndingId | null) {
+  if (ending === 'ceder') return {
+    aria: 'Tasación firmada y retirada de la casa.',
+    kicker: 'tasación aceptada',
+    mark: 'FIRMADO',
+    lastLine: 'La planilla ya decía: “firmará”.',
+  };
+  if (ending === 'exponer') return {
+    aria: 'Expediente atado con todas las pruebas del método.',
+    kicker: 'archivo completo',
+    mark: 'COPIA AFUERA',
+    lastLine: 'El archivo ya decía: “hará una copia”.',
+  };
+  if (ending === 'despertar') return {
+    aria: 'Cuaderno azul colgado sobre el plano de la casa.',
+    kicker: 'nombre agregado',
+    mark: 'NO SE VENDE',
+    lastLine: 'Tu letra coincide con la visita anterior.',
+  };
+  return {
+    aria: 'Tasación cruzada con una tachadura de rechazo.',
+    kicker: 'precio rechazado',
+    mark: 'NO',
+    lastLine: 'La planilla ya decía: “tachará”.',
+  };
 }
